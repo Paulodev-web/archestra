@@ -19,7 +19,7 @@ To generate metrics without making real OpenAI API calls, enable benchmark mock 
 BENCHMARK_MOCK_MODE=true
 ```
 
-Then restart the backend to apply the setting.
+Then restart the backend (or `tilt up`) to apply the setting. The mock client will generate realistic, randomized token counts (50-500 prompt tokens, 20-200 completion tokens) for observability testing.
 
 ### 3. Set Environment Variables
 
