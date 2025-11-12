@@ -1,4 +1,4 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env node
 /**
  * Quick metrics data generator for observability demos
  *
@@ -8,7 +8,7 @@
  * 3. Set BENCHMARK_MOCK_MODE=true on backend to avoid real OpenAI API calls
  *
  * Usage:
- *   ARCHESTRA_API_KEY=your-key pnpm tsx scripts/quick-metrics-demo.ts
+ *   ARCHESTRA_API_KEY=your-key pnpm exec tsx scripts/quick-metrics-demo.ts
  *
  * Options:
  *   --duration=300          # Run for 5 minutes (default: 300)

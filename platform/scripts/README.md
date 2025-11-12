@@ -39,10 +39,10 @@ docker compose -f dev/docker-compose.observability.yml up -d
 
 ```bash
 # Generate 5 minutes of traffic at 20 requests/minute
-pnpm --filter @backend exec tsx ../scripts/quick-metrics-demo.ts
+node scripts/quick-metrics-demo.js
 
 # Or customize:
-pnpm --filter @backend exec tsx ../scripts/quick-metrics-demo.ts --duration=600 --rpm=30 --keep-agents
+node scripts/quick-metrics-demo.js --duration=600 --rpm=30 --keep-agents
 ```
 
 ## What It Does
@@ -150,25 +150,25 @@ histogram_quantile(0.95, sum(rate(llm_request_duration_seconds_bucket[5m])) by (
 
 1. **Run overnight** to build up historical data:
    ```bash
-   ARCHESTRA_API_KEY=key pnpm --filter @backend exec tsx ../scripts/quick-metrics-demo.ts --duration=28800 --rpm=10 --keep-agents
+   ARCHESTRA_API_KEY=key node scripts/quick-metrics-demo.js --duration=28800 --rpm=10 --keep-agents
    ```
 
 2. **Keep agents** for repeated runs:
    ```bash
-   pnpm --filter @backend exec tsx ../scripts/quick-metrics-demo.ts --keep-agents
+   node scripts/quick-metrics-demo.js --keep-agents
    # Run again later without recreating agents
    ```
 
 3. **Vary traffic patterns**:
    ```bash
    # Morning spike
-   pnpm --filter @backend exec tsx ../scripts/quick-metrics-demo.ts --rpm=50 --duration=300
+   node scripts/quick-metrics-demo.js --rpm=50 --duration=300
 
    # Normal load
-   pnpm --filter @backend exec tsx ../scripts/quick-metrics-demo.ts --rpm=20 --duration=600
+   node scripts/quick-metrics-demo.js --rpm=20 --duration=600
 
    # Quiet period
-   pnpm --filter @backend exec tsx ../scripts/quick-metrics-demo.ts --rpm=5 --duration=300
+   node scripts/quick-metrics-demo.js --rpm=5 --duration=300
    ```
 
 4. **Use multiple terminals** to simulate concurrent workloads with different patterns

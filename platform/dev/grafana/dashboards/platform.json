@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 0,
+  "id": 1,
   "links": [],
   "panels": [
     {
@@ -105,7 +105,9 @@
       "id": 1,
       "options": {
         "legend": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
@@ -116,7 +118,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.0-18940657299.patch2",
+      "pluginVersion": "12.2.1",
       "targets": [
         {
           "datasource": {
@@ -206,7 +208,9 @@
       "id": 2,
       "options": {
         "legend": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
@@ -217,7 +221,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.0-18940657299.patch2",
+      "pluginVersion": "12.2.1",
       "targets": [
         {
           "datasource": {
@@ -347,7 +351,10 @@
       "id": 6,
       "options": {
         "legend": {
-          "calcs": ["lastNotNull", "sum"],
+          "calcs": [
+            "lastNotNull",
+            "sum"
+          ],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true
@@ -358,7 +365,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.0-18940657299.patch2",
+      "pluginVersion": "12.2.1",
       "targets": [
         {
           "datasource": {
@@ -571,7 +578,10 @@
       "id": 7,
       "options": {
         "legend": {
-          "calcs": ["lastNotNull", "mean"],
+          "calcs": [
+            "lastNotNull",
+            "mean"
+          ],
           "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
@@ -582,7 +592,7 @@
           "sort": "desc"
         }
       },
-      "pluginVersion": "12.3.0-18940657299.patch2",
+      "pluginVersion": "12.2.1",
       "targets": [
         {
           "datasource": {
@@ -676,7 +686,11 @@
       "id": 9,
       "options": {
         "legend": {
-          "calcs": ["lastNotNull", "mean", "max"],
+          "calcs": [
+            "lastNotNull",
+            "mean",
+            "max"
+          ],
           "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
@@ -687,7 +701,7 @@
           "sort": "desc"
         }
       },
-      "pluginVersion": "12.3.0-18940657299.patch2",
+      "pluginVersion": "12.2.1",
       "targets": [
         {
           "datasource": {
@@ -825,7 +839,10 @@
       "id": 8,
       "options": {
         "legend": {
-          "calcs": ["lastNotNull", "sum"],
+          "calcs": [
+            "lastNotNull",
+            "sum"
+          ],
           "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
@@ -836,7 +853,7 @@
           "sort": "desc"
         }
       },
-      "pluginVersion": "12.3.0-18940657299.patch2",
+      "pluginVersion": "12.2.1",
       "targets": [
         {
           "datasource": {
@@ -925,8 +942,8 @@
         ]
       },
       "gridPos": {
-        "h": 10,
-        "w": 24,
+        "h": 22,
+        "w": 12,
         "x": 0,
         "y": 36
       },
@@ -936,12 +953,12 @@
         "showHeader": true,
         "sortBy": [
           {
-            "desc": false,
-            "displayName": "Trace ID"
+            "desc": true,
+            "displayName": "Duration"
           }
         ]
       },
-      "pluginVersion": "12.3.0-18940657299.patch2",
+      "pluginVersion": "12.2.1",
       "targets": [
         {
           "datasource": {
@@ -981,10 +998,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 12,
-        "w": 24,
-        "x": 0,
-        "y": 46
+        "h": 22,
+        "w": 12,
+        "x": 12,
+        "y": 36
       },
       "id": 24,
       "options": {
@@ -1001,7 +1018,7 @@
           ]
         }
       },
-      "pluginVersion": "12.3.0-18940657299.patch2",
+      "pluginVersion": "12.2.1",
       "targets": [
         {
           "datasource": {
@@ -1034,7 +1051,10 @@
   "preload": false,
   "refresh": "10s",
   "schemaVersion": 42,
-  "tags": ["platform", "archestra"],
+  "tags": [
+    "platform",
+    "archestra"
+  ],
   "templating": {
     "list": [
       {
@@ -1120,5 +1140,5 @@
   "timezone": "",
   "title": "Archestra Platform",
   "uid": "archestra-platform",
-  "version": 8
+  "version": 4
 }
