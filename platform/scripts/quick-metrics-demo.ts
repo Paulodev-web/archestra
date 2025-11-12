@@ -5,6 +5,7 @@
  * Prerequisites:
  * 1. Create agents in the UI with labels (or let this script create them)
  * 2. Set ARCHESTRA_API_KEY environment variable
+ * 3. Set BENCHMARK_MOCK_MODE=true on backend to avoid real OpenAI API calls
  *
  * Usage:
  *   ARCHESTRA_API_KEY=your-key pnpm tsx scripts/quick-metrics-demo.ts
@@ -17,19 +18,12 @@
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:9000';
 const API_KEY = process.env.ARCHESTRA_API_KEY;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 if (!API_KEY) {
   console.error('❌ Missing ARCHESTRA_API_KEY environment variable');
   console.error('   Create an API key in the Archestra UI under Settings → API Keys');
   process.exit(1);
 }
-
-const providerKeys = {
-  openai: OPENAI_API_KEY,
-  anthropic: ANTHROPIC_API_KEY,
-};
 
 // Parse arguments
 const args = process.argv.slice(2).reduce((acc, arg) => {
@@ -45,45 +39,45 @@ const KEEP_AGENTS = args['keep-agents'] || false;
 interface AgentConfig {
   name: string;
   labels: Record<string, string>;
-  provider: 'openai' | 'anthropic';
+  provider: 'openai';
   model: string;
   stream: boolean;
 }
 
 const AGENT_CONFIGS: AgentConfig[] = [
   {
-    name: '🚀 Production Chat',
+    name: 'Production Chat',
     labels: { environment: 'production', team: 'platform', app: 'chat' },
     provider: 'openai',
     model: 'gpt-4o',
     stream: true,
   },
   {
-    name: '🧪 Staging Code Helper',
+    name: 'Staging Code Helper',
     labels: { environment: 'staging', team: 'engineering', app: 'code-assistant' },
-    provider: 'anthropic',
-    model: 'claude-3-5-sonnet-20241022',
+    provider: 'openai',
+    model: 'gpt-4o',
     stream: true,
   },
   {
-    name: '💻 Dev Analytics',
+    name: 'Dev Analytics',
     labels: { environment: 'development', team: 'data-science', app: 'analytics' },
-    provider: 'anthropic',
-    model: 'claude-3-5-haiku-20241022',
+    provider: 'openai',
+    model: 'gpt-4o-mini',
     stream: false,
   },
   {
-    name: '🎯 Production Support',
+    name: 'Production Support',
     labels: { environment: 'production', team: 'support', app: 'customer-service' },
     provider: 'openai',
     model: 'gpt-4o-mini',
     stream: false,
   },
   {
-    name: '🌐 Translation Service',
+    name: 'Translation Service',
     labels: { environment: 'production', team: 'i18n', app: 'translation' },
-    provider: 'anthropic',
-    model: 'claude-3-5-haiku-20241022',
+    provider: 'openai',
+    model: 'gpt-4o-mini',
     stream: true,
   },
 ];
@@ -143,42 +137,21 @@ async function createAgentWithLabels(config: AgentConfig): Promise<string> {
 async function makeRequest(agentId: string, config: AgentConfig): Promise<boolean> {
   const prompt = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
 
-  const endpoints = {
-    openai: `/v1/openai/${agentId}/chat/completions`,
-    anthropic: `/v1/anthropic/${agentId}/messages`,
-  };
-
-  const bodies = {
-    openai: {
-      model: config.model,
-      messages: [{ role: 'user', content: prompt }],
-      stream: config.stream,
-      max_tokens: 50,
-    },
-    anthropic: {
-      model: config.model,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 50,
-      stream: config.stream,
-    },
+  const endpoint = `/v1/openai/${agentId}/chat/completions`;
+  const body = {
+    model: config.model,
+    messages: [{ role: 'user', content: prompt }],
+    stream: config.stream,
+    max_tokens: 50,
   };
 
   try {
-    const providerApiKey = providerKeys[config.provider];
-    if (!providerApiKey) {
-      console.log(`⚠️  [SKIP] ${config.name.padEnd(25)} missing ${config.provider.toUpperCase()}_API_KEY`);
-      return false;
-    }
-
-    // Different providers use different auth headers
-    const authHeaders = config.provider === 'anthropic'
-      ? { 'x-api-key': providerApiKey }
-      : { 'Authorization': providerApiKey };
-
-    const res = await api(endpoints[config.provider], {
+    const res = await api(endpoint, {
       method: 'POST',
-      body: JSON.stringify(bodies[config.provider]),
-      headers: authHeaders,
+      body: JSON.stringify(body),
+      headers: {
+        'Authorization': 'mock-key', // Mock key since BENCHMARK_MOCK_MODE is enabled
+      },
     });
 
     // Consume stream if needed

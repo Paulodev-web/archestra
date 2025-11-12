@@ -11,18 +11,31 @@ In the Archestra UI:
 2. Create a new API key
 3. Copy the key value
 
-### 2. Set Environment Variables
+### 2. Enable Mock Mode
+
+To generate metrics without making real OpenAI API calls, enable benchmark mock mode in your `.env`:
+
+```bash
+BENCHMARK_MOCK_MODE=true
+```
+
+Then restart the backend to apply the setting.
+
+### 3. Set Environment Variables
 
 ```bash
 # Required: Archestra API key for creating agents
 export ARCHESTRA_API_KEY=your-api-key-here
-
-# Required: At least one provider API key
-export OPENAI_API_KEY=your-openai-key
-export ANTHROPIC_API_KEY=your-anthropic-key
 ```
 
-### 3. Run the Demo
+### 4. Clear Previous Metrics (Optional)
+
+```bash
+docker compose -f dev/docker-compose.observability.yml down -v
+docker compose -f dev/docker-compose.observability.yml up -d
+```
+
+### 5. Run the Demo
 
 ```bash
 # Generate 5 minutes of traffic at 20 requests/minute
@@ -43,10 +56,10 @@ The script will:
    - Production Support (environment=production, team=support, app=customer-service)
    - Translation Service (environment=production, team=i18n, app=translation)
 
-2. **Generate LLM requests** across:
-   - OpenAI (gpt-4o, gpt-4o-mini)
-   - Anthropic (claude-3-5-sonnet, claude-3-5-haiku)
+2. **Generate LLM requests**:
+   - OpenAI models (gpt-4o, gpt-4o-mini)
    - Both streaming and non-streaming modes
+   - Uses mock responses when BENCHMARK_MOCK_MODE=true (no real API calls)
 
 3. **Include realistic variance**:
    - Random prompt selection
@@ -170,9 +183,9 @@ histogram_quantile(0.95, sum(rate(llm_request_duration_seconds_bucket[5m])) by (
 - Verify API key is valid
 
 **"401 Unauthorized" or "500 Server Error"**
-- Ensure you have provider API keys set (OPENAI_API_KEY, ANTHROPIC_API_KEY)
-- The script will skip providers without API keys
-- At least one provider API key is required to generate traffic
+- Ensure BENCHMARK_MOCK_MODE=true is set in your .env file
+- Restart the backend after setting BENCHMARK_MOCK_MODE
+- Check that the backend is running (`tilt up`)
 
 **No metrics showing up**
 - Wait 15-30 seconds for Prometheus to scrape
