@@ -17,12 +17,19 @@
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:9000';
 const API_KEY = process.env.ARCHESTRA_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 if (!API_KEY) {
   console.error('❌ Missing ARCHESTRA_API_KEY environment variable');
   console.error('   Create an API key in the Archestra UI under Settings → API Keys');
   process.exit(1);
 }
+
+const providerKeys = {
+  openai: OPENAI_API_KEY,
+  anthropic: ANTHROPIC_API_KEY,
+};
 
 // Parse arguments
 const args = process.argv.slice(2).reduce((acc, arg) => {
@@ -38,7 +45,7 @@ const KEEP_AGENTS = args['keep-agents'] || false;
 interface AgentConfig {
   name: string;
   labels: Record<string, string>;
-  provider: 'openai' | 'anthropic' | 'gemini';
+  provider: 'openai' | 'anthropic';
   model: string;
   stream: boolean;
 }
@@ -61,8 +68,8 @@ const AGENT_CONFIGS: AgentConfig[] = [
   {
     name: '💻 Dev Analytics',
     labels: { environment: 'development', team: 'data-science', app: 'analytics' },
-    provider: 'gemini',
-    model: 'gemini-1.5-pro',
+    provider: 'anthropic',
+    model: 'claude-3-5-haiku-20241022',
     stream: false,
   },
   {
@@ -101,7 +108,7 @@ async function api(path: string, options: RequestInit = {}) {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${API_KEY}`,
+      'Authorization': API_KEY,
       ...options.headers,
     },
   });
@@ -139,7 +146,6 @@ async function makeRequest(agentId: string, config: AgentConfig): Promise<boolea
   const endpoints = {
     openai: `/v1/openai/${agentId}/chat/completions`,
     anthropic: `/v1/anthropic/${agentId}/messages`,
-    gemini: `/v1/gemini/${agentId}/models/${config.model}:generateContent`,
   };
 
   const bodies = {
@@ -155,15 +161,24 @@ async function makeRequest(agentId: string, config: AgentConfig): Promise<boolea
       max_tokens: 50,
       stream: config.stream,
     },
-    gemini: {
-      contents: [{ parts: [{ text: prompt }] }],
-    },
   };
 
   try {
+    const providerApiKey = providerKeys[config.provider];
+    if (!providerApiKey) {
+      console.log(`⚠️  [SKIP] ${config.name.padEnd(25)} missing ${config.provider.toUpperCase()}_API_KEY`);
+      return false;
+    }
+
+    // Different providers use different auth headers
+    const authHeaders = config.provider === 'anthropic'
+      ? { 'x-api-key': providerApiKey }
+      : { 'Authorization': providerApiKey };
+
     const res = await api(endpoints[config.provider], {
       method: 'POST',
       body: JSON.stringify(bodies[config.provider]),
+      headers: authHeaders,
     });
 
     // Consume stream if needed

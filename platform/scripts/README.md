@@ -11,17 +11,25 @@ In the Archestra UI:
 2. Create a new API key
 3. Copy the key value
 
-### 2. Run the Demo
+### 2. Set Environment Variables
 
 ```bash
-# Set your API key
+# Required: Archestra API key for creating agents
 export ARCHESTRA_API_KEY=your-api-key-here
 
+# Required: At least one provider API key
+export OPENAI_API_KEY=your-openai-key
+export ANTHROPIC_API_KEY=your-anthropic-key
+```
+
+### 3. Run the Demo
+
+```bash
 # Generate 5 minutes of traffic at 20 requests/minute
-pnpm tsx scripts/quick-metrics-demo.ts
+pnpm --filter @backend exec tsx ../scripts/quick-metrics-demo.ts
 
 # Or customize:
-pnpm tsx scripts/quick-metrics-demo.ts --duration=600 --rpm=30 --keep-agents
+pnpm --filter @backend exec tsx ../scripts/quick-metrics-demo.ts --duration=600 --rpm=30 --keep-agents
 ```
 
 ## What It Does
@@ -38,7 +46,6 @@ The script will:
 2. **Generate LLM requests** across:
    - OpenAI (gpt-4o, gpt-4o-mini)
    - Anthropic (claude-3-5-sonnet, claude-3-5-haiku)
-   - Gemini (gemini-1.5-pro)
    - Both streaming and non-streaming modes
 
 3. **Include realistic variance**:
@@ -130,25 +137,25 @@ histogram_quantile(0.95, sum(rate(llm_request_duration_seconds_bucket[5m])) by (
 
 1. **Run overnight** to build up historical data:
    ```bash
-   ARCHESTRA_API_KEY=key pnpm tsx scripts/quick-metrics-demo.ts --duration=28800 --rpm=10 --keep-agents
+   ARCHESTRA_API_KEY=key pnpm --filter @backend exec tsx ../scripts/quick-metrics-demo.ts --duration=28800 --rpm=10 --keep-agents
    ```
 
 2. **Keep agents** for repeated runs:
    ```bash
-   pnpm tsx scripts/quick-metrics-demo.ts --keep-agents
+   pnpm --filter @backend exec tsx ../scripts/quick-metrics-demo.ts --keep-agents
    # Run again later without recreating agents
    ```
 
 3. **Vary traffic patterns**:
    ```bash
    # Morning spike
-   pnpm tsx scripts/quick-metrics-demo.ts --rpm=50 --duration=300
+   pnpm --filter @backend exec tsx ../scripts/quick-metrics-demo.ts --rpm=50 --duration=300
 
    # Normal load
-   pnpm tsx scripts/quick-metrics-demo.ts --rpm=20 --duration=600
+   pnpm --filter @backend exec tsx ../scripts/quick-metrics-demo.ts --rpm=20 --duration=600
 
    # Quiet period
-   pnpm tsx scripts/quick-metrics-demo.ts --rpm=5 --duration=300
+   pnpm --filter @backend exec tsx ../scripts/quick-metrics-demo.ts --rpm=5 --duration=300
    ```
 
 4. **Use multiple terminals** to simulate concurrent workloads with different patterns
@@ -162,9 +169,10 @@ histogram_quantile(0.95, sum(rate(llm_request_duration_seconds_bucket[5m])) by (
 - Check that the platform is running (`tilt up`)
 - Verify API key is valid
 
-**"Network error"**
-- Ensure backend is running on http://localhost:9000
-- Check that you have provider API keys configured in .env
+**"401 Unauthorized" or "500 Server Error"**
+- Ensure you have provider API keys set (OPENAI_API_KEY, ANTHROPIC_API_KEY)
+- The script will skip providers without API keys
+- At least one provider API key is required to generate traffic
 
 **No metrics showing up**
 - Wait 15-30 seconds for Prometheus to scrape
