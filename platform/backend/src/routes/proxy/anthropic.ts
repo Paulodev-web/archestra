@@ -598,14 +598,18 @@ const anthropicProxyRoutes: FastifyPluginAsyncZod = async (fastify) => {
           (e) => e.type === "message_start",
         ) as AnthropicProvider.Messages.MessageStartEvent | undefined;
 
-        // Extract token usage and report metrics for streaming
-        const usage = messageStartEvent?.message.usage || {
-          input_tokens: 0,
-          output_tokens: 0,
+        // Extract token usage from message_start and message_delta events
+        const messageDeltaEvent1 = events.find(
+          (e) => e.type === "message_delta",
+        ) as AnthropicProvider.Messages.MessageDeltaEvent | undefined;
+
+        const usage = {
+          input_tokens: messageStartEvent?.message.usage?.input_tokens || 0,
+          output_tokens: messageDeltaEvent1?.usage?.output_tokens || 0,
         };
         const tokenUsage = utils.adapters.anthropic.getUsageTokens(usage);
 
-        if (messageStartEvent?.message.usage) {
+        if (messageStartEvent?.message.usage || messageDeltaEvent1?.usage) {
           reportLLMTokens("anthropic", resolvedAgent, tokenUsage);
         }
 

@@ -38,7 +38,7 @@ const KEEP_AGENTS = args['keep-agents'] || false;
 
 const AGENT_CONFIGS = [
   {
-    name: 'Support Bot A (GPT-4o)',
+    name: 'Support Bot A (OpenAI)',
     labels: {
       team: 'support',
       tier: '2',
@@ -51,7 +51,7 @@ const AGENT_CONFIGS = [
     stream: true,
   },
   {
-    name: 'Support Bot B (GPT-4o-mini)',
+    name: 'Support Bot B (Anthropic)',
     labels: {
       team: 'support',
       tier: '2',
@@ -59,8 +59,8 @@ const AGENT_CONFIGS = [
       environment: 'production',
       variant: 'b'
     },
-    provider: 'openai',
-    model: 'gpt-4o-mini',
+    provider: 'anthropic',
+    model: 'claude-3-5-sonnet-20241022',
     stream: true,
   },
 ];
@@ -121,7 +121,11 @@ async function createAgentWithLabels(config) {
 async function makeRequest(agentId, config) {
   const prompt = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
 
-  const endpoint = `/v1/${config.provider}/${agentId}/chat/completions`;
+  // Different endpoints for different providers
+  const endpoint = config.provider === 'anthropic'
+    ? `/v1/anthropic/${agentId}/v1/messages`
+    : `/v1/${config.provider}/${agentId}/chat/completions`;
+
   const body = {
     model: config.model,
     messages: [{ role: 'user', content: prompt }],
@@ -130,12 +134,20 @@ async function makeRequest(agentId, config) {
   };
 
   try {
+    const headers = {
+      'Authorization': `Bearer ${agentId}`,
+    };
+
+    // Anthropic requires specific headers
+    if (config.provider === 'anthropic') {
+      headers['anthropic-version'] = '2023-06-01';
+      headers['x-api-key'] = 'mock-key';
+    }
+
     const res = await api(endpoint, {
       method: 'POST',
       body: JSON.stringify(body),
-      headers: {
-        'Authorization': 'mock-key',
-      },
+      headers,
     });
 
     // Consume stream if needed
@@ -182,15 +194,15 @@ async function generateTraffic(agents) {
 
   console.log(`\n🔥 Simulating ${DURATION}s (${DURATION/3600} hours) of traffic`);
   console.log(`   Running at ${SPEED}x speed for ${Math.round(realDuration/60)} minutes`);
-  console.log(`   Split 50/50 between GPT-4o and GPT-4o-mini\n`);
+  console.log(`   Split 50/50 between OpenAI and Anthropic\n`);
 
   let total = 0;
   let success = 0;
   let lastHour = -1;
 
   const stats = {
-    'gpt-4o': { total: 0, success: 0 },
-    'gpt-4o-mini': { total: 0, success: 0 },
+    'openai': { total: 0, success: 0 },
+    'anthropic': { total: 0, success: 0 },
   };
 
   while (Date.now() < endTime) {
@@ -216,21 +228,21 @@ async function generateTraffic(agents) {
     total++;
     if (ok) success++;
 
-    // Track per-model stats
-    stats[agent.config.model].total++;
-    if (ok) stats[agent.config.model].success++;
+    // Track per-provider stats
+    stats[agent.config.provider].total++;
+    if (ok) stats[agent.config.provider].success++;
 
     const icon = ok ? '✅' : '❌';
     const progress = ((simulatedElapsed / DURATION) * 100).toFixed(1);
-    const modelLabel = agent.config.model === 'gpt-4o' ? '4o' : '4o-mini';
-    process.stdout.write(`\r${icon} [${modelLabel}] Requests: ${total} (${success} ok) | Progress: ${progress}%`);
+    const providerLabel = agent.config.provider === 'openai' ? 'OAI' : 'ANT';
+    process.stdout.write(`\r${icon} [${providerLabel}] Requests: ${total} (${success} ok) | Progress: ${progress}%`);
 
     await new Promise(r => setTimeout(r, intervalMs));
   }
 
   console.log(`\n\n📊 Total: ${total} requests (${success} successful, ${((success / total) * 100).toFixed(1)}% success rate)`);
-  console.log(`   GPT-4o: ${stats['gpt-4o'].total} requests (${stats['gpt-4o'].success} ok)`);
-  console.log(`   GPT-4o-mini: ${stats['gpt-4o-mini'].total} requests (${stats['gpt-4o-mini'].success} ok)`);
+  console.log(`   OpenAI: ${stats['openai'].total} requests (${stats['openai'].success} ok)`);
+  console.log(`   Anthropic: ${stats['anthropic'].total} requests (${stats['anthropic'].success} ok)`);
 }
 
 async function cleanup() {
@@ -251,7 +263,7 @@ async function cleanup() {
 async function main() {
   console.log('🎬 ReadyMade Support Bot A/B Test - Observability Demo');
   console.log(`   Simulating: ${DURATION/3600}h @ ${SPEED}x speed`);
-  console.log(`   Comparing: GPT-4o vs GPT-4o-mini (cost vs performance)\n`);
+  console.log(`   Comparing: OpenAI GPT-4o vs Anthropic Claude 3.5 Sonnet\n`);
 
   try {
     // Create agents

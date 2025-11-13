@@ -292,7 +292,7 @@
             "uid": "$metrics_datasource"
           },
           "editorMode": "code",
-          "expr": "sum(\n    rate(llm_tokens_total{agent_name=\"Support Bot A (GPT-4o)\", type=\"input\"}[5m]) * 2.5 / 100000\n  )\n  +\n  sum(\n    rate(llm_tokens_total{agent_name=\"Support Bot A (GPT-4o)\", type=\"output\"}[5m]) * 10 / 100000\n  )",
+          "expr": "sum(\n    rate(llm_tokens_total{agent_name=\"Support Bot A (OpenAI)\", type=\"input\"}[5m]) * 2.5 / 100000\n  )\n  +\n  sum(\n    rate(llm_tokens_total{agent_name=\"Support Bot A (OpenAI)\", type=\"output\"}[5m]) * 10 / 100000\n  )",
           "hide": false,
           "instant": false,
           "legendFormat": "Support Bot A $/s",
@@ -307,7 +307,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(\n    rate(llm_tokens_total{agent_name=\"Support Bot B (GPT-4o-mini)\", type=\"input\"}[5m]) * 0.15 / 100000\n  )\n  +\n  sum(\n    rate(llm_tokens_total{agent_name=\"Support Bot B (GPT-4o-mini)\", type=\"output\"}[5m]) * 0.60 / 100000\n  )",
+          "expr": "sum(\n    rate(llm_tokens_total{agent_name=\"Support Bot B (Anthropic)\", type=\"input\"}[5m]) * 3 / 100000\n  )\n  +\n  sum(\n    rate(llm_tokens_total{agent_name=\"Support Bot B (Anthropic)\", type=\"output\"}[5m]) * 15 / 100000\n  )",
           "hide": false,
           "instant": false,
           "interval": "",
@@ -1284,5 +1284,5 @@
   "timezone": "",
   "title": "Archestra Platform",
   "uid": "archestra-platform",
-  "version": 5
+  "version": 3
 }

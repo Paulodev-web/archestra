@@ -13,7 +13,7 @@ In the Archestra UI:
 
 ### 2. Enable Mock Mode
 
-To generate metrics without making real OpenAI API calls, enable benchmark mock mode in your `.env`:
+To generate metrics without making real API calls, enable benchmark mock mode in your `.env`:
 
 ```bash
 BENCHMARK_MOCK_MODE=true
@@ -38,41 +38,41 @@ docker compose -f dev/docker-compose.observability.yml up -d
 ### 5. Run the Demo
 
 ```bash
-# Generate 5 minutes of traffic at 20 requests/minute
-node scripts/quick-metrics-demo.js
+# Simulate 24 hours of support bot traffic at 60x speed (runs in ~24 minutes)
+node scripts/demo-support-bot.js
 
-# Or customize:
-node scripts/quick-metrics-demo.js --duration=600 --rpm=30 --keep-agents
+# Simulate 20 hours at 300x speed (runs in ~5 minutes)
+node scripts/demo-support-bot.js --duration=72000 --speed=300
 ```
 
 ## What It Does
 
 The script will:
 
-1. **Create 5 agents** with realistic labels:
-   - Production Chat (environment=production, team=platform, app=chat)
-   - Staging Code Helper (environment=staging, team=engineering, app=code-assistant)
-   - Dev Analytics (environment=development, team=data-science, app=analytics)
-   - Production Support (environment=production, team=support, app=customer-service)
-   - Translation Service (environment=production, team=i18n, app=translation)
+1. **Create 2 support bot agents** for A/B testing:
+   - Support Bot A (OpenAI) - using gpt-4o
+   - Support Bot B (Anthropic) - using claude-3-5-sonnet
+   - Both labeled with: team=support, tier=2, product=readymade, environment=production
+   - Differentiated by variant=a or variant=b
 
-2. **Generate LLM requests**:
-   - OpenAI models (gpt-4o, gpt-4o-mini)
-   - Both streaming and non-streaming modes
-   - Uses mock responses when BENCHMARK_MOCK_MODE=true (no real API calls)
+2. **Generate realistic support traffic patterns**:
+   - Business hours (9am-6pm): 15-30 requests/minute
+   - Peak hours (11am-2pm): 25-35 requests/minute
+   - Off hours: 2-5 requests/minute
+   - 50/50 split between OpenAI and Anthropic bots
 
 3. **Include realistic variance**:
-   - Random prompt selection
-   - 5% intentional error rate
-   - Mixed request patterns
+   - Support-specific prompts (CSS issues, integrations, webhooks, etc.)
+   - Time-based traffic patterns
+   - Both streaming responses
 
 4. **Clean up** agents when done (unless `--keep-agents` is specified)
 
 ## Options
 
 ```bash
---duration=300      # Duration in seconds (default: 300 = 5 minutes)
---rpm=20           # Requests per minute (default: 20)
+--duration=86400   # Simulated duration in seconds (default: 86400 = 24 hours)
+--speed=60         # Speed multiplier (default: 60 = 60x faster, 1 day in 24 min)
 --keep-agents      # Don't delete agents after running (useful for repeated runs)
 ```
 
@@ -148,30 +148,30 @@ histogram_quantile(0.95, sum(rate(llm_request_duration_seconds_bucket[5m])) by (
 
 ## Tips for Demo Videos
 
-1. **Run overnight** to build up historical data:
+1. **Quick demo** (~10 minutes for 20 hours of data):
    ```bash
-   ARCHESTRA_API_KEY=key node scripts/quick-metrics-demo.js --duration=28800 --rpm=10 --keep-agents
+   node scripts/demo-support-bot.js --duration=72000 --speed=120 --keep-agents
    ```
 
-2. **Keep agents** for repeated runs:
+2. **Full day simulation** (~24 minutes for 24 hours of data):
    ```bash
-   node scripts/quick-metrics-demo.js --keep-agents
+   node scripts/demo-support-bot.js --keep-agents
+   ```
+
+3. **Keep agents** for repeated runs:
+   ```bash
+   node scripts/demo-support-bot.js --keep-agents
    # Run again later without recreating agents
    ```
 
-3. **Vary traffic patterns**:
+4. **Different time periods**:
    ```bash
-   # Morning spike
-   node scripts/quick-metrics-demo.js --rpm=50 --duration=300
+   # Simulate 12 hours at 30x speed (24 minutes)
+   node scripts/demo-support-bot.js --duration=43200 --speed=30
 
-   # Normal load
-   node scripts/quick-metrics-demo.js --rpm=20 --duration=600
-
-   # Quiet period
-   node scripts/quick-metrics-demo.js --rpm=5 --duration=300
+   # Simulate 48 hours at 120x speed (24 minutes)
+   node scripts/demo-support-bot.js --duration=172800 --speed=120
    ```
-
-4. **Use multiple terminals** to simulate concurrent workloads with different patterns
 
 ## Troubleshooting
 
