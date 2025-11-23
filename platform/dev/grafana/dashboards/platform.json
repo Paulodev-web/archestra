@@ -1169,18 +1169,27 @@
           "filters": [
             {
               "id": "status-filter",
+              "isCustomValue": false,
               "operator": ">=",
               "scope": "span",
-              "tag": "status.code",
+              "tag": "http.response.status_code",
               "value": [
-                "2"
-              ]
+                "200"
+              ],
+              "valueType": "int"
+            },
+            {
+              "id": "96b7f7e3",
+              "operator": "=",
+              "scope": "span"
             }
           ],
           "limit": 50,
+          "metricsQueryType": "range",
           "query": "{ resource.service.name=\"Archestra Platform API\" && span.http.status_code >= 400 }",
           "queryType": "traceqlSearch",
           "refId": "A",
+          "serviceMapUseNativeHistograms": false,
           "tableType": "traces"
         }
       ],
@@ -1525,5 +1534,5 @@
   "timezone": "",
   "title": "Archestra Platform",
   "uid": "archestra-platform",
-  "version": 25
+  "version": 27
 }
