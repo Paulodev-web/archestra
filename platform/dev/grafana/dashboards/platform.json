@@ -1238,24 +1238,46 @@
           },
           "filters": [
             {
+              "id": "route-category-filter",
+              "isCustomValue": true,
+              "operator": "=",
+              "scope": "span",
+              "tag": "route.category",
+              "value": [
+                "llm-proxy"
+              ],
+              "valueType": "string"
+            },
+            {
               "id": "status-filter",
               "isCustomValue": false,
-              "operator": ">",
+              "operator": ">=",
               "scope": "span",
-              "tag": "http.response.status_code",
+              "tag": "http.status_code",
               "value": [
-                "200"
+                "400"
               ],
               "valueType": "int"
             },
             {
-              "id": "96b7f7e3",
+              "id": "agent-name-filter",
               "isCustomValue": true,
               "operator": "=~",
               "scope": "span",
-              "tag": "http.route",
+              "tag": "agent.name",
               "value": [
-                "/v1/.*"
+                "${agent_filter:regex}"
+              ],
+              "valueType": "string"
+            },
+            {
+              "id": "agent-team-filter",
+              "isCustomValue": true,
+              "operator": "=~",
+              "scope": "span",
+              "tag": "agent.team",
+              "value": [
+                "${team_filter:regex}"
               ],
               "valueType": "string"
             }

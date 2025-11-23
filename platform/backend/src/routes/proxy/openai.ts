@@ -1,4 +1,5 @@
 import fastifyHttpProxy from "@fastify/http-proxy";
+import { trace } from "@opentelemetry/api";
 import { RouteId } from "@shared";
 import type { FastifyReply } from "fastify";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
@@ -141,6 +142,19 @@ const openAiProxyRoutes: FastifyPluginAsyncZod = async (fastify) => {
       { resolvedAgentId, wasExplicit: !!agentId },
       "Agent resolved",
     );
+
+    // Add agent attributes to the current active span (root request span)
+    // so they're available for TraceQL queries
+    const activeSpan = trace.getActiveSpan();
+    if (activeSpan) {
+      activeSpan.setAttribute("agent.id", resolvedAgent.id);
+      activeSpan.setAttribute("agent.name", resolvedAgent.name);
+      if (resolvedAgent.labels && resolvedAgent.labels.length > 0) {
+        for (const label of resolvedAgent.labels) {
+          activeSpan.setAttribute(`agent.${label.key}`, label.value);
+        }
+      }
+    }
 
     const { authorization: openAiApiKey } = headers;
     let openAiClient: OpenAIProvider;
