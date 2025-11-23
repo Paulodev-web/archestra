@@ -183,7 +183,7 @@
             "type": "prometheus",
             "uid": "$metrics_datasource"
           },
-          "expr": "rate(llm_tokens_total{type=\"input\"}[1m])",
+          "expr": "rate(llm_tokens_total{type=\"input\", agent_team=~\"${team_filter:regex}\"}[1m])",
           "hide": false,
           "instant": false,
           "legendFormat": "{{agent_name}} (input)",
@@ -196,7 +196,7 @@
             "type": "prometheus",
             "uid": "$metrics_datasource"
           },
-          "expr": "rate(llm_tokens_total{type=\"output\"}[1m])",
+          "expr": "rate(llm_tokens_total{type=\"output\", agent_team=~\"${team_filter:regex}\"}[1m])",
           "hide": false,
           "instant": false,
           "legendFormat": "{{agent_name}} (output)",
@@ -477,7 +477,7 @@
             "type": "prometheus",
             "uid": "$metrics_datasource"
           },
-          "expr": "sum by(agent_name) (rate(llm_request_duration_seconds_count{status_code=~\"4..|5..\"}[1m])) / sum by(agent_name) (rate(llm_request_duration_seconds_count[1m]))",
+          "expr": "sum by(agent_name) (rate(llm_request_duration_seconds_count{status_code=~\"4..|5..\", agent_team=~\"${team_filter:regex}\"}[1m])) / sum by(agent_name) (rate(llm_request_duration_seconds_count{agent_team=~\"${team_filter:regex}\"}[1m]))",
           "hide": false,
           "instant": false,
           "legendFormat": "{{agent_name}}",
@@ -1541,6 +1541,35 @@
         "options": [],
         "query": {
           "query": "label_values(http_request_duration_seconds_count, route)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": [
+            "support"
+          ],
+          "value": [
+            "support"
+          ]
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${metrics_datasource}"
+        },
+        "definition": "label_values(llm_request_duration_seconds_count, agent_team)",
+        "description": "Filter by team (support, sales, etc.)",
+        "includeAll": true,
+        "label": "Team",
+        "multi": true,
+        "name": "team_filter",
+        "options": [],
+        "query": {
+          "query": "label_values(llm_request_duration_seconds_count, agent_team)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,

@@ -76,10 +76,21 @@ const AGENT_CONFIGS = [
     model: 'gpt-4o',
     stream: false,
   },
+  {
+    name: 'Sales Assistant',
+    labels: {
+      team: 'sales',
+      product: 'readymade',
+      environment: 'production',
+    },
+    provider: 'openai',
+    model: 'gpt-4o',
+    stream: false,
+  },
 ];
 
 // Realistic support prompts
-const PROMPTS = [
+const SUPPORT_PROMPTS = [
   'My custom CSS is not applying to the widget',
   'How do I integrate the Stripe payment widget?',
   'The animation is stuttering on mobile Safari',
@@ -90,6 +101,20 @@ const PROMPTS = [
   'Images are not loading after publishing',
   'Can I password-protect a page?',
   'The responsive layout breaks on iPad',
+];
+
+// Realistic sales prompts
+const SALES_PROMPTS = [
+  'What pricing plans do you offer?',
+  'Can I get a demo of the enterprise plan?',
+  'How does the free trial work?',
+  'What are the differences between Pro and Enterprise?',
+  'Do you offer discounts for annual subscriptions?',
+  'What kind of support is included in each plan?',
+  'Can I upgrade or downgrade my plan anytime?',
+  'Do you have a partner or reseller program?',
+  'What payment methods do you accept?',
+  'Is there a limit on the number of projects?',
 ];
 
 const createdAgentIds = [];
@@ -149,7 +174,9 @@ async function findOrCreateAgent(config) {
 }
 
 async function makeRequest(agentId, config) {
-  const prompt = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
+  // Choose prompts based on team
+  const prompts = config.labels.team === 'sales' ? SALES_PROMPTS : SUPPORT_PROMPTS;
+  const prompt = prompts[Math.floor(Math.random() * prompts.length)];
 
   // Different endpoints for different providers
   const endpoint = config.provider === 'anthropic'
@@ -187,24 +214,38 @@ async function makeRequest(agentId, config) {
 }
 
 /**
- * Calculate requests per minute based on time of day
+ * Calculate requests per minute based on time of day and team
+ * Support: peaks 11am-2pm (support rush)
+ * Sales: peaks 2pm-5pm (sales calls)
  * Business hours (9am-6pm): 15-30 req/min
  * Off hours: 2-5 req/min
  */
-function getTrafficRate(simulatedHour) {
+function getTrafficRate(simulatedHour, team = 'support') {
   const hour = simulatedHour % 24;
 
   // Business hours: 9am (9) to 6pm (18)
   if (hour >= 9 && hour < 18) {
-    // Peak hours: 11am-2pm
-    if (hour >= 11 && hour < 14) {
-      return 25 + Math.random() * 10; // 25-35 req/min
+    if (team === 'sales') {
+      // Sales peak: 2pm-5pm (afternoon calls)
+      if (hour >= 14 && hour < 17) {
+        return 20 + Math.random() * 8; // 20-28 req/min
+      }
+      // Regular sales hours
+      return 10 + Math.random() * 8; // 10-18 req/min
+    } else {
+      // Support peak: 11am-2pm (lunch rush)
+      if (hour >= 11 && hour < 14) {
+        return 25 + Math.random() * 10; // 25-35 req/min
+      }
+      // Regular support hours
+      return 15 + Math.random() * 10; // 15-25 req/min
     }
-    // Regular business hours
-    return 15 + Math.random() * 10; // 15-25 req/min
   }
 
-  // Off hours
+  // Off hours (sales quieter than support)
+  if (team === 'sales') {
+    return 1 + Math.random() * 2; // 1-3 req/min
+  }
   return 2 + Math.random() * 3; // 2-5 req/min
 }
 
@@ -215,55 +256,72 @@ async function generateTraffic(agents) {
 
   console.log(`\n🔥 Simulating ${DURATION}s (${DURATION/3600} hours) of traffic`);
   console.log(`   Running at ${SPEED}x speed for ${Math.round(realDuration/60)} minutes`);
-  console.log(`   Split 50/50 between Anthropic (A) and OpenAI (B)\n`);
+  console.log(`   Support: 40% Bot A (Anthropic), 40% Bot B (OpenAI)`);
+  console.log(`   Sales: 20% Sales Assistant (OpenAI)\n`);
 
   let total = 0;
   let success = 0;
   let lastHour = -1;
 
-  const stats = {
-    'openai': { total: 0, success: 0 },
-    'anthropic': { total: 0, success: 0 },
-  };
+  // Track stats per agent
+  const stats = {};
+  for (const agent of agents) {
+    stats[agent.config.name] = { total: 0, success: 0 };
+  }
 
   while (Date.now() < endTime) {
     const elapsed = (Date.now() - startTime) / 1000; // Real seconds elapsed
     const simulatedElapsed = elapsed * SPEED; // Simulated seconds
     const simulatedHour = Math.floor(simulatedElapsed / 3600);
 
-    // Log hour transitions
+    // Weighted agent selection: 40% Bot A, 40% Bot B, 20% Sales
+    const rand = Math.random();
+    let agent;
+    if (rand < 0.4) {
+      agent = agents[0]; // Bot A (Anthropic)
+    } else if (rand < 0.8) {
+      agent = agents[1]; // Bot B (OpenAI)
+    } else {
+      agent = agents[2]; // Sales Assistant
+    }
+
+    const team = agent.config.labels.team;
+
+    // Log hour transitions with team-specific rates
     if (simulatedHour !== lastHour) {
       const hourLabel = (simulatedHour % 24).toString().padStart(2, '0');
-      const rate = getTrafficRate(simulatedHour);
-      console.log(`\n⏰ Hour ${hourLabel}:00 - Traffic rate: ~${Math.round(rate)} req/min`);
+      const supportRate = getTrafficRate(simulatedHour, 'support');
+      const salesRate = getTrafficRate(simulatedHour, 'sales');
+      console.log(`\n⏰ Hour ${hourLabel}:00 - Support: ~${Math.round(supportRate)} req/min, Sales: ~${Math.round(salesRate)} req/min`);
       lastHour = simulatedHour;
     }
 
-    const rpm = getTrafficRate(simulatedHour);
+    // Use team-specific traffic rate for interval timing
+    const rpm = getTrafficRate(simulatedHour, team);
     const intervalMs = (60 * 1000) / rpm / SPEED; // Adjusted for speed
 
-    // Alternate between agents (50/50 split)
-    const agent = agents[total % agents.length];
     const ok = await makeRequest(agent.id, agent.config);
 
     total++;
     if (ok) success++;
 
-    // Track per-provider stats
-    stats[agent.config.provider].total++;
-    if (ok) stats[agent.config.provider].success++;
+    // Track per-agent stats
+    stats[agent.config.name].total++;
+    if (ok) stats[agent.config.name].success++;
 
     const icon = ok ? '✅' : '❌';
     const progress = ((simulatedElapsed / DURATION) * 100).toFixed(1);
-    const providerLabel = agent.config.provider === 'anthropic' ? 'A' : 'B';
-    process.stdout.write(`\r${icon} [${providerLabel}] Requests: ${total} (${success} ok) | Progress: ${progress}%`);
+    const agentLabel = team === 'sales' ? 'S' : (agent.config.provider === 'anthropic' ? 'A' : 'B');
+    process.stdout.write(`\r${icon} [${agentLabel}] Requests: ${total} (${success} ok) | Progress: ${progress}%`);
 
     await new Promise(r => setTimeout(r, intervalMs));
   }
 
   console.log(`\n\n📊 Total: ${total} requests (${success} successful, ${((success / total) * 100).toFixed(1)}% success rate)`);
-  console.log(`   Support Bot A (Anthropic): ${stats['anthropic'].total} requests (${stats['anthropic'].success} ok, ${((stats['anthropic'].success / stats['anthropic'].total) * 100).toFixed(1)}% success)`);
-  console.log(`   Support Bot B (OpenAI): ${stats['openai'].total} requests (${stats['openai'].success} ok, ${((stats['openai'].success / stats['openai'].total) * 100).toFixed(1)}% success)`);
+  for (const [name, stat] of Object.entries(stats)) {
+    const successRate = stat.total > 0 ? ((stat.success / stat.total) * 100).toFixed(1) : 0;
+    console.log(`   ${name}: ${stat.total} requests (${stat.success} ok, ${successRate}% success)`);
+  }
 }
 
 async function cleanup() {
