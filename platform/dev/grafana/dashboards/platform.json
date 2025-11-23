@@ -213,7 +213,7 @@
             "type": "prometheus",
             "uid": "$metrics_datasource"
           },
-          "expr": "rate(llm_tokens_total{type=\"input\", agent_name=~\"${agent_filter:pipe}\"}[1m])",
+          "expr": "rate(llm_tokens_total{type=\"input\", agent_name=~\"${agent_filter:pipe}\", team=~\"${team_filter:pipe}\"}[1m])",
           "hide": false,
           "instant": false,
           "legendFormat": "{{agent_name}} (input)",
@@ -226,7 +226,7 @@
             "type": "prometheus",
             "uid": "$metrics_datasource"
           },
-          "expr": "rate(llm_tokens_total{type=\"output\", agent_name=~\"${agent_filter:pipe}\"}[1m])",
+          "expr": "rate(llm_tokens_total{type=\"output\", agent_name=~\"${agent_filter:pipe}\", team=~\"${team_filter:pipe}\"}[1m])",
           "hide": false,
           "instant": false,
           "legendFormat": "{{agent_name}} (output)",
@@ -522,7 +522,7 @@
             "type": "prometheus",
             "uid": "$metrics_datasource"
           },
-          "expr": "sum by(agent_name) (rate(llm_request_duration_seconds_count{status_code=~\"4..|5..\", agent_name=~\"${agent_filter:pipe}\"}[1m])) / sum by(agent_name) (rate(llm_request_duration_seconds_count{agent_name=~\"${agent_filter:pipe}\"}[1m]))",
+          "expr": "sum by(agent_name) (rate(llm_request_duration_seconds_count{status_code=~\"4..|5..\", agent_name=~\"${agent_filter:pipe}\", team=~\"${team_filter:pipe}\"}[1m])) / sum by(agent_name) (rate(llm_request_duration_seconds_count{agent_name=~\"${agent_filter:pipe}\", team=~\"${team_filter:pipe}\"}[1m]))",
           "hide": false,
           "instant": false,
           "legendFormat": "{{agent_name}}",
@@ -1262,7 +1262,7 @@
           ],
           "limit": 50,
           "metricsQueryType": "range",
-          "query": "{ resource.service.name=\"Archestra Platform API\" && span.http.route=~\"/v1/.*\" && span.http.status_code >= 400 } && { span.agent_name=~\"${agent_filter:pipe}\" }",
+          "query": "{ resource.service.name=\"Archestra Platform API\" && span.http.route=~\"/v1/.*\" && span.http.status_code >= 400 && span.agent.name=~\"${agent_filter:pipe}\" }",
           "queryType": "traceqlSearch",
           "refId": "A",
           "serviceMapUseNativeHistograms": false,
@@ -1606,15 +1606,15 @@
           "type": "prometheus",
           "uid": "${metrics_datasource}"
         },
-        "definition": "label_values(llm_request_duration_seconds_count, agent_team)",
+        "definition": "label_values(llm_request_duration_seconds_count, team)",
         "description": "Filter by team (support, sales, etc.)",
-        "includeAll": true,
+        "includeAll": false,
         "label": "Team",
         "multi": true,
         "name": "team_filter",
         "options": [],
         "query": {
-          "query": "label_values(llm_request_duration_seconds_count, agent_team)",
+          "query": "label_values(llm_request_duration_seconds_count, team)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
