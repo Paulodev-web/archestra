@@ -1151,6 +1151,13 @@
       "id": 27,
       "options": {
         "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": [],
+          "reducer": [],
+          "show": false
+        },
         "showHeader": true,
         "sortBy": [
           {
@@ -1186,7 +1193,7 @@
           ],
           "limit": 50,
           "metricsQueryType": "range",
-          "query": "{ resource.service.name=\"Archestra Platform API\" && span.http.status_code >= 400 }",
+          "query": "{ resource.service.name=\"Archestra Platform API\" && span.http.status_code >= 400 && span.agent.name=~\"${agent_filter:regex}\" }",
           "queryType": "traceqlSearch",
           "refId": "A",
           "serviceMapUseNativeHistograms": false,
@@ -1205,14 +1212,14 @@
             "indexByName": {
               "Duration": 3,
               "Start Time": 0,
-              "resource.agent.name": 1,
+              "span.agent.name": 1,
               "span.http.status_code": 2,
               "traceID": 4
             },
             "renameByName": {
               "Duration": "Duration",
               "Start Time": "Time",
-              "resource.agent.name": "Agent",
+              "span.agent.name": "Agent",
               "span.http.status_code": "Status Code",
               "traceID": "Trace ID"
             }
@@ -1443,7 +1450,7 @@
     }
   ],
   "preload": false,
-  "refresh": "10s",
+  "refresh": "",
   "schemaVersion": 42,
   "tags": [
     "platform",
@@ -1517,6 +1524,36 @@
         "options": [],
         "query": {
           "query": "label_values(http_request_duration_seconds_count, route)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${metrics_datasource}"
+        },
+        "definition": "label_values(llm_request_duration_seconds_count, agent_name)",
+        "description": "Filter error traces by agent",
+        "includeAll": true,
+        "label": "Agent Filter",
+        "multi": true,
+        "name": "agent_filter",
+        "options": [],
+        "query": {
+          "query": "label_values(llm_request_duration_seconds_count, agent_name)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
