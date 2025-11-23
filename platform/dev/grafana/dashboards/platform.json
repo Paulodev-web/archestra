@@ -150,6 +150,36 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Sales Assistant.*input.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "light-yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Sales Assistant.*output.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "semi-dark-yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
           }
         ]
       },
@@ -417,13 +447,13 @@
           {
             "matcher": {
               "id": "byRegexp",
-              "options": ".*Bot B.*"
+              "options": ".*Bot A.*"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "green",
+                  "fixedColor": "red",
                   "mode": "fixed"
                 }
               }
@@ -432,13 +462,28 @@
           {
             "matcher": {
               "id": "byRegexp",
-              "options": ".*Bot A.*"
+              "options": ".*Bot B.*"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "red",
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Sales Assistant.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
                   "mode": "fixed"
                 }
               }
@@ -1217,7 +1262,7 @@
           ],
           "limit": 50,
           "metricsQueryType": "range",
-          "query": "{ resource.service.name=\"Archestra Platform API\" && span.http.route=~\"/v1/.*\" && span.http.status_code >= 400 } && { span.agent.name=~\"${agent_filter:regex}\" }",
+          "query": "{ resource.service.name=\"Archestra Platform API\" && span.http.route=~\"/v1/.*\" && span.http.status_code >= 400 } && { span.agent.name=~\"${agent_filter:regex}\" && span.agent.team=~\"${team_filter:regex}\" }",
           "queryType": "traceqlSearch",
           "refId": "A",
           "serviceMapUseNativeHistograms": false,
@@ -1581,11 +1626,13 @@
         "current": {
           "text": [
             "Support Bot A (Anthropic)",
-            "Support Bot B (OpenAI)"
+            "Support Bot B (OpenAI)",
+            "Sales Assistant"
           ],
           "value": [
             "Support Bot A (Anthropic)",
-            "Support Bot B (OpenAI)"
+            "Support Bot B (OpenAI)",
+            "Sales Assistant"
           ]
         },
         "datasource": {
