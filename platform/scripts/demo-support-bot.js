@@ -51,26 +51,18 @@ if (OTEL_EXPORTER === 'honeycomb' && !process.env.HONEYCOMB_API_KEY) {
 
 const AGENT_CONFIGS = [
   {
-    name: 'Support Bot A (Anthropic)',
+    name: 'Support Bot A Anthropic',
     labels: {
       team: 'support',
-      tier: '2',
-      product: 'readymade',
-      environment: 'production',
-      variant: 'a'
     },
     provider: 'anthropic',
     model: 'claude-3-5-sonnet-20241022',
     stream: false,
   },
   {
-    name: 'Support Bot B (OpenAI)',
+    name: 'Support Bot B OpenAI',
     labels: {
       team: 'support',
-      tier: '2',
-      product: 'readymade',
-      environment: 'production',
-      variant: 'b'
     },
     provider: 'openai',
     model: 'gpt-4o',
@@ -80,8 +72,6 @@ const AGENT_CONFIGS = [
     name: 'Sales Assistant',
     labels: {
       team: 'sales',
-      product: 'readymade',
-      environment: 'production',
     },
     provider: 'openai',
     model: 'gpt-4o',
@@ -147,10 +137,20 @@ async function findOrCreateAgent(config) {
     agent = existingAgent;
     console.log(`♻️  Reusing: ${config.name} (${agent.id.slice(0, 8)}...)`);
   } else {
-    // Create agent
+    // Convert labels object to array format for API
+    const labels = Object.entries(config.labels).map(([key, value]) => ({
+      key,
+      value
+    }));
+
+    // Create agent with labels
     const res = await api('/api/agents', {
       method: 'POST',
-      body: JSON.stringify({ name: config.name, teams: [] }),
+      body: JSON.stringify({
+        name: config.name,
+        teams: [],
+        labels
+      }),
     });
 
     if (!res.ok) {
@@ -160,14 +160,6 @@ async function findOrCreateAgent(config) {
     agent = await res.json();
     createdAgentIds.push(agent.id);
     console.log(`✅ Created: ${config.name} (${agent.id.slice(0, 8)}...)`);
-  }
-
-  // Update/add labels
-  for (const [key, value] of Object.entries(config.labels)) {
-    await api(`/api/agents/${agent.id}/labels`, {
-      method: 'POST',
-      body: JSON.stringify({ key, value }),
-    });
   }
 
   return { id: agent.id, config };
@@ -256,8 +248,8 @@ async function generateTraffic(agents) {
 
   console.log(`\n🔥 Simulating ${DURATION}s (${DURATION/3600} hours) of traffic`);
   console.log(`   Running at ${SPEED}x speed for ${Math.round(realDuration/60)} minutes`);
-  console.log(`   Support: 40% Bot A (Anthropic), 40% Bot B (OpenAI)`);
-  console.log(`   Sales: 20% Sales Assistant (OpenAI)\n`);
+  console.log(`   Support: 40% Bot A Anthropic, 40% Bot B OpenAI`);
+  console.log(`   Sales: 20% Sales Assistant OpenAI\n`);
 
   let total = 0;
   let success = 0;
@@ -278,9 +270,9 @@ async function generateTraffic(agents) {
     const rand = Math.random();
     let agent;
     if (rand < 0.4) {
-      agent = agents[0]; // Bot A (Anthropic)
+      agent = agents[0]; // Bot A Anthropic
     } else if (rand < 0.8) {
-      agent = agents[1]; // Bot B (OpenAI)
+      agent = agents[1]; // Bot B OpenAI
     } else {
       agent = agents[2]; // Sales Assistant
     }
@@ -403,8 +395,8 @@ async function waitForBackend() {
 async function main() {
   console.log('🎬 ReadyMade Support Bot A/B Test - Observability Demo');
   console.log(`   Simulating: ${DURATION/3600}h @ ${SPEED}x speed`);
-  console.log(`   Bot A (Anthropic): Fast & efficient, but less reliable (~8% errors)`);
-  console.log(`   Bot B (OpenAI): Slower & more tokens, but rock-solid (~2% errors)`);
+  console.log(`   Bot A Anthropic: Fast & efficient, but less reliable (~8% errors)`);
+  console.log(`   Bot B OpenAI: Slower & more tokens, but rock-solid (~2% errors)`);
   if (OTEL_EXPORTER === 'honeycomb') {
     console.log(`   📊 Traces → Honeycomb`);
   }

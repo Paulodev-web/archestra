@@ -213,7 +213,7 @@
             "type": "prometheus",
             "uid": "$metrics_datasource"
           },
-          "expr": "rate(llm_tokens_total{type=\"input\", agent_team=~\"${team_filter:regex}\"}[1m])",
+          "expr": "rate(llm_tokens_total{type=\"input\", agent_name=~\"${agent_filter:pipe}\"}[1m])",
           "hide": false,
           "instant": false,
           "legendFormat": "{{agent_name}} (input)",
@@ -226,7 +226,7 @@
             "type": "prometheus",
             "uid": "$metrics_datasource"
           },
-          "expr": "rate(llm_tokens_total{type=\"output\", agent_team=~\"${team_filter:regex}\"}[1m])",
+          "expr": "rate(llm_tokens_total{type=\"output\", agent_name=~\"${agent_filter:pipe}\"}[1m])",
           "hide": false,
           "instant": false,
           "legendFormat": "{{agent_name}} (output)",
@@ -352,7 +352,7 @@
             "uid": "$metrics_datasource"
           },
           "editorMode": "code",
-          "expr": "sum(\n    rate(llm_tokens_total{agent_name=\"Support Bot A (Anthropic)\", type=\"input\"}[5m]) * 3 / 100000\n  )\n  +\n  sum(\n    rate(llm_tokens_total{agent_name=\"Support Bot A (Anthropic)\", type=\"output\"}[5m]) * 15 / 100000\n  )",
+          "expr": "sum(\n    rate(llm_tokens_total{agent_name=\"Support Bot A Anthropic\", type=\"input\"}[5m]) * 3 / 100000\n  )\n  +\n  sum(\n    rate(llm_tokens_total{agent_name=\"Support Bot A Anthropic\", type=\"output\"}[5m]) * 15 / 100000\n  )",
           "hide": false,
           "instant": false,
           "legendFormat": "Support Bot A $/s",
@@ -367,7 +367,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(\n    rate(llm_tokens_total{agent_name=\"Support Bot B (OpenAI)\", type=\"input\"}[5m]) * 2.5 / 100000\n  )\n  +\n  sum(\n    rate(llm_tokens_total{agent_name=\"Support Bot B (OpenAI)\", type=\"output\"}[5m]) * 10 / 100000\n  )",
+          "expr": "sum(\n    rate(llm_tokens_total{agent_name=\"Support Bot B OpenAI\", type=\"input\"}[5m]) * 2.5 / 100000\n  )\n  +\n  sum(\n    rate(llm_tokens_total{agent_name=\"Support Bot B OpenAI\", type=\"output\"}[5m]) * 10 / 100000\n  )",
           "hide": false,
           "instant": false,
           "interval": "",
@@ -522,7 +522,7 @@
             "type": "prometheus",
             "uid": "$metrics_datasource"
           },
-          "expr": "sum by(agent_name) (rate(llm_request_duration_seconds_count{status_code=~\"4..|5..\", agent_team=~\"${team_filter:regex}\"}[1m])) / sum by(agent_name) (rate(llm_request_duration_seconds_count{agent_team=~\"${team_filter:regex}\"}[1m]))",
+          "expr": "sum by(agent_name) (rate(llm_request_duration_seconds_count{status_code=~\"4..|5..\", agent_name=~\"${agent_filter:pipe}\"}[1m])) / sum by(agent_name) (rate(llm_request_duration_seconds_count{agent_name=~\"${agent_filter:pipe}\"}[1m]))",
           "hide": false,
           "instant": false,
           "legendFormat": "{{agent_name}}",
@@ -1262,7 +1262,7 @@
           ],
           "limit": 50,
           "metricsQueryType": "range",
-          "query": "{ resource.service.name=\"Archestra Platform API\" && span.http.route=~\"/v1/.*\" && span.http.status_code >= 400 } && { span.agent.name=~\"${agent_filter:regex}\" && span.agent.team=~\"${team_filter:regex}\" }",
+          "query": "{ resource.service.name=\"Archestra Platform API\" && span.http.route=~\"/v1/.*\" && span.http.status_code >= 400 } && { span.agent_name=~\"${agent_filter:pipe}\" }",
           "queryType": "traceqlSearch",
           "refId": "A",
           "serviceMapUseNativeHistograms": false,
@@ -1625,13 +1625,13 @@
       {
         "current": {
           "text": [
-            "Support Bot A (Anthropic)",
-            "Support Bot B (OpenAI)",
+            "Support Bot A Anthropic",
+            "Support Bot B OpenAI",
             "Sales Assistant"
           ],
           "value": [
-            "Support Bot A (Anthropic)",
-            "Support Bot B (OpenAI)",
+            "Support Bot A Anthropic",
+            "Support Bot B OpenAI",
             "Sales Assistant"
           ]
         },

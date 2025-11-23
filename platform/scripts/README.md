@@ -50,8 +50,8 @@ node scripts/demo-support-bot.js --duration=72000 --speed=300
 The script will:
 
 1. **Create 2 support bot agents** for A/B testing:
-  - Support Bot A (Anthropic) - using claude-3-5-sonnet
-  - Support Bot B (OpenAI) - using gpt-4o
+  - Support Bot A Anthropic - using claude-3-5-sonnet
+  - Support Bot B OpenAI - using gpt-4o
    - Both labeled with: team=support, tier=2, product=readymade, environment=production
    - Differentiated by variant=a or variant=b
 
