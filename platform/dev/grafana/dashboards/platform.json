@@ -213,7 +213,7 @@
             "type": "prometheus",
             "uid": "$metrics_datasource"
           },
-          "expr": "rate(llm_tokens_total{type=\"input\", agent_name=~\"${agent_filter:pipe}\", team=~\"${team_filter:pipe}\"}[1m])",
+          "expr": "rate(llm_tokens_total{type=\"input\", agent_name=~\"${agent_filter:regex}\", team=~\"${team_filter:regex}\"}[1m])",
           "hide": false,
           "instant": false,
           "legendFormat": "{{agent_name}} (input)",
@@ -226,7 +226,7 @@
             "type": "prometheus",
             "uid": "$metrics_datasource"
           },
-          "expr": "rate(llm_tokens_total{type=\"output\", agent_name=~\"${agent_filter:pipe}\", team=~\"${team_filter:pipe}\"}[1m])",
+          "expr": "rate(llm_tokens_total{type=\"output\", agent_name=~\"${agent_filter:regex}\", team=~\"${team_filter:regex}\"}[1m])",
           "hide": false,
           "instant": false,
           "legendFormat": "{{agent_name}} (output)",
@@ -522,7 +522,7 @@
             "type": "prometheus",
             "uid": "$metrics_datasource"
           },
-          "expr": "sum by(agent_name) (rate(llm_request_duration_seconds_count{status_code=~\"4..|5..\", agent_name=~\"${agent_filter:pipe}\", team=~\"${team_filter:pipe}\"}[1m])) / sum by(agent_name) (rate(llm_request_duration_seconds_count{agent_name=~\"${agent_filter:pipe}\", team=~\"${team_filter:pipe}\"}[1m]))",
+          "expr": "sum by(agent_name) (rate(llm_request_duration_seconds_count{status_code=~\"4..|5..\", agent_name=~\"${agent_filter:regex}\", team=~\"${team_filter:regex}\"}[1m])) / sum by(agent_name) (rate(llm_request_duration_seconds_count{agent_name=~\"${agent_filter:regex}\", team=~\"${team_filter:regex}\"}[1m]))",
           "hide": false,
           "instant": false,
           "legendFormat": "{{agent_name}}",
@@ -1031,10 +1031,10 @@
             },
             "includeByName": {},
             "indexByName": {
-              "traceID": 1,
-              "Start Time": 2,
               "Duration": 3,
-              "Name": 4
+              "Name": 4,
+              "Start Time": 2,
+              "traceID": 1
             },
             "renameByName": {}
           }
@@ -1262,7 +1262,7 @@
           ],
           "limit": 50,
           "metricsQueryType": "range",
-          "query": "{ resource.service.name=\"Archestra Platform API\" && span.http.route=~\"/v1/.*\" && span.http.status_code >= 400 && span.agent.name=~\"${agent_filter:pipe}\" }",
+          "query": "{ resource.service.name=\"Archestra Platform API\" }",
           "queryType": "traceqlSearch",
           "refId": "A",
           "serviceMapUseNativeHistograms": false,
@@ -1275,14 +1275,14 @@
           "id": "organize",
           "options": {
             "excludeByName": {
-              "Service": true,
-              "Name": true
+              "Name": true,
+              "Service": true
             },
             "includeByName": {},
             "indexByName": {
-              "traceID": 1,
+              "Duration": 3,
               "Start Time": 2,
-              "Duration": 3
+              "traceID": 1
             },
             "renameByName": {}
           }
@@ -1665,5 +1665,5 @@
   "timezone": "",
   "title": "Archestra Platform",
   "uid": "archestra-platform",
-  "version": 43
+  "version": 21
 }
