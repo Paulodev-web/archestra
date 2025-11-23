@@ -311,6 +311,21 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Sales Assistant.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "semi-dark-yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
           }
         ]
       },
@@ -374,6 +389,21 @@
           "legendFormat": "Support Bot B $/s",
           "range": true,
           "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$metrics_datasource"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(\n    rate(llm_tokens_total{agent_name=\"Sales Assistant\", type=\"input\"}[5m]) * 2.5 / 100000\n  )\n  +\n  sum(\n    rate(llm_tokens_total{agent_name=\"Sales Assistant\", type=\"output\"}[5m]) * 10 / 100000\n  )",
+          "hide": false,
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Sales Assistant $/s",
+          "range": true,
+          "refId": "C"
         }
       ],
       "title": "Support bot cost",
