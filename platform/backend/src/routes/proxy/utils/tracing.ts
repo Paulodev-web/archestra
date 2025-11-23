@@ -60,13 +60,35 @@ export async function startActiveLlmSpan<T>(
       try {
         return await callback(span);
       } catch (error) {
-        // Record error on span
+        // Record error on span with detailed attributes
         span.setStatus({
           code: SpanStatusCode.ERROR,
           message: error instanceof Error ? error.message : String(error),
         });
         span.recordException(error instanceof Error ? error : new Error(String(error)));
+
+        // Add error details as span attributes for better querying
+        if (error instanceof Error) {
+          span.setAttribute("error.message", error.message);
+          // Extract error type and status code from mock client errors
+          if ("error" in error && typeof error.error === "object" && error.error !== null) {
+            const errorObj = error.error as { type?: string; message?: string };
+            if (errorObj.type) {
+              span.setAttribute("error.type", errorObj.type);
+            }
+          }
+          if ("status" in error && typeof error.status === "number") {
+            span.setAttribute("http.status_code", error.status);
+          }
+        }
+
+        // IMPORTANT: End the span so it gets exported
+        span.end();
         throw error;
+      } finally {
+        // Ensure span is always ended (handles success case where callback manually calls span.end())
+        // This is safe to call multiple times - subsequent calls are no-ops
+        span.end();
       }
     },
   );

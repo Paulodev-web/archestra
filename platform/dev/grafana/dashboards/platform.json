@@ -94,7 +94,7 @@
           {
             "matcher": {
               "id": "byRegexp",
-              "options": ".*Anthropic.*input.*"
+              "options": ".*Bot A.*input.*"
             },
             "properties": [
               {
@@ -109,7 +109,7 @@
           {
             "matcher": {
               "id": "byRegexp",
-              "options": ".*Anthropic.*output.*"
+              "options": ".*Bot A.*output.*"
             },
             "properties": [
               {
@@ -124,7 +124,7 @@
           {
             "matcher": {
               "id": "byRegexp",
-              "options": ".*OpenAI.*input.*"
+              "options": ".*Bot B.*input.*"
             },
             "properties": [
               {
@@ -139,7 +139,7 @@
           {
             "matcher": {
               "id": "byRegexp",
-              "options": ".*OpenAI.*output.*"
+              "options": ".*Bot B.*output.*"
             },
             "properties": [
               {
