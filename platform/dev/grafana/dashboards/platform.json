@@ -94,13 +94,13 @@
           {
             "matcher": {
               "id": "byRegexp",
-              "options": ".*input.*"
+              "options": ".*Anthropic.*input.*"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "blue",
+                  "fixedColor": "super-light-red",
                   "mode": "fixed"
                 }
               }
@@ -109,13 +109,43 @@
           {
             "matcher": {
               "id": "byRegexp",
-              "options": ".*output.*"
+              "options": ".*Anthropic.*output.*"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "green",
+                  "fixedColor": "semi-dark-red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*OpenAI.*input.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "light-blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*OpenAI.*output.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "semi-dark-blue",
                   "mode": "fixed"
                 }
               }
@@ -214,7 +244,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "semi-dark-blue",
                 "value": 0
               }
             ]
@@ -225,13 +255,13 @@
           {
             "matcher": {
               "id": "byRegexp",
-              "options": ".*input.*"
+              "options": ".*Bot B.*"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "blue",
+                  "fixedColor": "semi-dark-red",
                   "mode": "fixed"
                 }
               }
@@ -240,13 +270,13 @@
           {
             "matcher": {
               "id": "byRegexp",
-              "options": ".*output.*"
+              "options": ".*Bot A.*"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "green",
+                  "fixedColor": "semi-dark-blue",
                   "mode": "fixed"
                 }
               }
@@ -320,107 +350,6 @@
       "type": "barchart"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "$metrics_datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "normal"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          },
-          "unit": "tools/s"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 10
-      },
-      "id": 25,
-      "options": {
-        "legend": {
-          "calcs": ["lastNotNull", "sum"],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.3.0-18940657299.patch2",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "$metrics_datasource"
-          },
-          "expr": "rate(llm_blocked_tools_total[1m])",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "{{agent_name}}",
-          "queryType": "range",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Blocked Tool Calls",
-      "type": "timeseries"
-    },
-    {
       "collapsed": true,
       "gridPos": {
         "h": 1,
@@ -492,7 +421,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 11
+            "y": 10
           },
           "id": 7,
           "options": {
@@ -600,7 +529,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 11
+            "y": 10
           },
           "id": 9,
           "options": {
@@ -753,7 +682,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 19
+            "y": 27
           },
           "id": 8,
           "options": {
@@ -796,7 +725,7 @@
       "type": "row"
     },
     {
-      "collapsed": true,
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -804,172 +733,171 @@
         "y": 10
       },
       "id": 23,
-      "panels": [
-        {
-          "datasource": {
-            "type": "tempo",
-            "uid": "$traces_datasource"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "custom": {
-                "align": "auto",
-                "cellOptions": {
-                  "type": "auto"
-                },
-                "footer": {
-                  "reducers": []
-                },
-                "inspect": false
-              },
-              "links": [
-                {
-                  "title": "Trace link",
-                  "url": "d/archestra-platform?var-traceId=${__data.fields[\"traceID\"]}"
-                }
-              ],
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": [
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Duration"
-                },
-                "properties": [
-                  {
-                    "id": "unit",
-                    "value": "ms"
-                  }
-                ]
-              }
-            ]
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 12,
-            "x": 0,
-            "y": 12
-          },
-          "id": 19,
-          "options": {
-            "cellHeight": "sm",
-            "showHeader": true,
-            "sortBy": [
-              {
-                "desc": true,
-                "displayName": "Duration"
-              }
-            ]
-          },
-          "pluginVersion": "12.2.1",
-          "targets": [
-            {
-              "datasource": {
-                "type": "tempo",
-                "uid": "$traces_datasource"
-              },
-              "filters": [
-                {
-                  "id": "16cb2113",
-                  "operator": "=",
-                  "scope": "span"
-                }
-              ],
-              "hide": false,
-              "instant": false,
-              "limit": 100,
-              "metricsQueryType": "range",
-              "query": "{resource.service.name=\"Archestra Platform API\"}",
-              "queryType": "traceqlSearch",
-              "range": true,
-              "refId": "A",
-              "serviceMapUseNativeHistograms": false,
-              "tableType": "traces"
-            }
-          ],
-          "title": "All Traces",
-          "type": "table"
-        },
-        {
-          "datasource": {
-            "type": "tempo",
-            "uid": "$traces_datasource"
-          },
-          "description": "Click on any trace ID in the \"All Traces\" table above to automatically load detailed trace information.",
-          "fieldConfig": {
-            "defaults": {},
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 12,
-            "x": 12,
-            "y": 12
-          },
-          "id": 24,
-          "options": {
-            "spanFilters": {
-              "criticalPathOnly": false,
-              "matchesOnly": false,
-              "serviceNameOperator": "=",
-              "spanNameOperator": "=",
-              "tags": [
-                {
-                  "id": "138105ca-1bf",
-                  "operator": "="
-                }
-              ]
-            }
-          },
-          "pluginVersion": "12.2.1",
-          "targets": [
-            {
-              "datasource": {
-                "type": "tempo",
-                "uid": "$traces_datasource"
-              },
-              "filters": [
-                {
-                  "id": "e12a1615",
-                  "operator": "=",
-                  "scope": "span"
-                }
-              ],
-              "hide": false,
-              "instant": false,
-              "limit": 20,
-              "metricsQueryType": "range",
-              "query": "${traceId}",
-              "queryType": "traceql",
-              "range": true,
-              "refId": "A",
-              "serviceMapUseNativeHistograms": false,
-              "tableType": "traces"
-            }
-          ],
-          "title": "Individual Trace",
-          "type": "traces"
-        }
-      ],
+      "panels": [],
       "title": "Traces",
       "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "tempo",
+        "uid": "$traces_datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "links": [
+            {
+              "title": "Trace link",
+              "url": "d/archestra-platform?var-traceId=${__data.fields[\"traceID\"]}"
+            }
+          ],
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Duration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 22,
+        "w": 12,
+        "x": 0,
+        "y": 11
+      },
+      "id": 19,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Duration"
+          }
+        ]
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "$traces_datasource"
+          },
+          "filters": [
+            {
+              "id": "16cb2113",
+              "operator": "=",
+              "scope": "span"
+            }
+          ],
+          "hide": false,
+          "instant": false,
+          "limit": 100,
+          "metricsQueryType": "range",
+          "query": "{resource.service.name=\"Archestra Platform API\"}",
+          "queryType": "traceqlSearch",
+          "range": true,
+          "refId": "A",
+          "serviceMapUseNativeHistograms": false,
+          "tableType": "traces"
+        }
+      ],
+      "title": "All Traces",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "tempo",
+        "uid": "$traces_datasource"
+      },
+      "description": "Click on any trace ID in the \"All Traces\" table above to automatically load detailed trace information.",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 22,
+        "w": 12,
+        "x": 12,
+        "y": 11
+      },
+      "id": 24,
+      "options": {
+        "spanFilters": {
+          "criticalPathOnly": false,
+          "matchesOnly": false,
+          "serviceNameOperator": "=",
+          "spanNameOperator": "=",
+          "tags": [
+            {
+              "id": "138105ca-1bf",
+              "operator": "="
+            }
+          ]
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "$traces_datasource"
+          },
+          "filters": [
+            {
+              "id": "e12a1615",
+              "operator": "=",
+              "scope": "span"
+            }
+          ],
+          "hide": false,
+          "instant": false,
+          "limit": 20,
+          "metricsQueryType": "range",
+          "query": "${traceId}",
+          "queryType": "traceql",
+          "range": true,
+          "refId": "A",
+          "serviceMapUseNativeHistograms": false,
+          "tableType": "traces"
+        }
+      ],
+      "title": "Individual Trace",
+      "type": "traces"
     },
     {
       "collapsed": true,
@@ -977,7 +905,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 11
+        "y": 33
       },
       "id": 20,
       "panels": [
@@ -1284,5 +1212,5 @@
   "timezone": "",
   "title": "Archestra Platform",
   "uid": "archestra-platform",
-  "version": 3
+  "version": 20
 }

@@ -11,10 +11,15 @@
  *   ARCHESTRA_API_KEY=your-key node scripts/demo-support-bot.js
  *
  * Options:
- *   --duration=86400        # Seconds to run (default: 86400 = 24 hours)
- *   --speed=60              # Speed multiplier (60 = 60x faster, 1 day in 24 min)
- *   --keep-agents           # Don't delete agents after running
+ *   --duration=86400                # Seconds to run (default: 86400 = 24 hours)
+ *   --speed=60                      # Speed multiplier (60 = 60x faster, 1 day in 24 min)
+ *   --keep-agents                   # Don't delete agents after running
+ *   --otel-exporter=honeycomb       # Send traces to Honeycomb (requires HONEYCOMB_API_KEY env var)
  */
+
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:9000';
 const API_KEY = process.env.ARCHESTRA_API_KEY;
@@ -35,6 +40,14 @@ const args = process.argv.slice(2).reduce((acc, arg) => {
 const DURATION = parseInt(args.duration || '86400'); // 24 hours in seconds
 const SPEED = parseInt(args.speed || '60'); // 60x speed = 1 day in 24 min
 const KEEP_AGENTS = args['keep-agents'] || false;
+const OTEL_EXPORTER = args['otel-exporter']; // 'honeycomb' or undefined
+
+// Validate Honeycomb configuration
+if (OTEL_EXPORTER === 'honeycomb' && !process.env.HONEYCOMB_API_KEY) {
+  console.error('❌ --otel-exporter=honeycomb requires HONEYCOMB_API_KEY environment variable');
+  console.error('   Get your API key from https://ui.honeycomb.io/account');
+  process.exit(1);
+}
 
 const AGENT_CONFIGS = [
   {
@@ -260,12 +273,80 @@ async function cleanup() {
   }
 }
 
+/**
+ * Configure OTEL exporter for Honeycomb
+ */
+const CONFIG_FILE_PATH = path.join(process.cwd(), 'backend/src/config.ts');
+let originalConfigContent = null;
+
+async function configureOtelExporter() {
+  if (OTEL_EXPORTER !== 'honeycomb') return;
+
+  console.log('🍯 Configuring Honeycomb OTEL exporter...');
+
+  // Read original config
+  originalConfigContent = fs.readFileSync(CONFIG_FILE_PATH, 'utf8');
+
+  // Replace OTEL config with Honeycomb endpoint
+  const modifiedConfig = originalConfigContent.replace(
+    /traceExporter: \{[\s\S]*?\} satisfies Partial<OTLPExporterNodeConfigBase>,/,
+    `traceExporter: {
+        url: "https://api.honeycomb.io:443/v1/traces",
+        headers: {
+          "x-honeycomb-team": process.env.HONEYCOMB_API_KEY || "",
+        },
+      } satisfies Partial<OTLPExporterNodeConfigBase>,`
+  );
+
+  fs.writeFileSync(CONFIG_FILE_PATH, modifiedConfig, 'utf8');
+
+  // Restart backend
+  console.log('🔄 Restarting backend with Honeycomb config...');
+  execSync('tilt trigger pnpm-dev', { stdio: 'ignore' });
+
+  // Wait for backend to be ready
+  console.log('⏳ Waiting for backend to restart...');
+  await waitForBackend();
+  console.log('✅ Backend ready with Honeycomb exporter\n');
+}
+
+async function restoreOtelExporter() {
+  if (!originalConfigContent) return;
+
+  console.log('\n🔄 Restoring original OTEL configuration...');
+  fs.writeFileSync(CONFIG_FILE_PATH, originalConfigContent, 'utf8');
+  execSync('tilt trigger pnpm-dev', { stdio: 'ignore' });
+  await waitForBackend();
+  console.log('✅ Configuration restored\n');
+}
+
+async function waitForBackend() {
+  const maxAttempts = 30;
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/health`);
+      if (response.ok) return;
+    } catch (e) {
+      // Backend not ready yet
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  throw new Error('Backend failed to start after 30 seconds');
+}
+
 async function main() {
   console.log('🎬 ReadyMade Support Bot A/B Test - Observability Demo');
   console.log(`   Simulating: ${DURATION/3600}h @ ${SPEED}x speed`);
-  console.log(`   Comparing: OpenAI GPT-4o vs Anthropic Claude 3.5 Sonnet\n`);
+  console.log(`   Comparing: OpenAI GPT-4o vs Anthropic Claude 3.5 Sonnet`);
+  if (OTEL_EXPORTER === 'honeycomb') {
+    console.log(`   📊 Traces → Honeycomb`);
+  }
+  console.log('');
 
   try {
+    // Configure OTEL exporter if needed
+    await configureOtelExporter();
+
     // Create agents
     console.log('📝 Creating support bots...\n');
     const agents = await Promise.all(
@@ -280,12 +361,14 @@ async function main() {
     process.exit(1);
   } finally {
     await cleanup();
+    await restoreOtelExporter();
   }
 }
 
 process.on('SIGINT', async () => {
   console.log('\n\n⚠️  Interrupted!');
   await cleanup();
+  await restoreOtelExporter();
   process.exit(0);
 });
 

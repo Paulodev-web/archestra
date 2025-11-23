@@ -4,18 +4,72 @@
  * Returns immediate responses without making actual API calls.
  * Used for benchmarking Archestra platform overhead without network latency.
  * Generates realistic, varied token counts for metrics testing.
+ *
+ * Demo characteristics:
+ * - Fast & efficient (lower latency, fewer tokens)
+ * - LESS reliable (~8-10% error rate) - shows real-world trade-offs
  */
 
 import type Anthropic from "@anthropic-ai/sdk";
 
 /**
- * Generate realistic random token counts
+ * Simulate errors for demo - Anthropic is less reliable
+ */
+function shouldSimulateError(): { error: boolean; type?: string } {
+  const random = Math.random();
+
+  // 8% error rate (vs OpenAI's 2%)
+  if (random < 0.08) {
+    // Different error types
+    if (random < 0.03) {
+      return { error: true, type: "overloaded" };
+    }
+    if (random < 0.06) {
+      return { error: true, type: "rate_limit" };
+    }
+    return { error: true, type: "timeout" };
+  }
+
+  return { error: false };
+}
+
+/**
+ * Simulate network latency - Anthropic is faster
+ */
+async function simulateLatency() {
+  // Anthropic: 100-300ms (faster than OpenAI)
+  const latency = Math.floor(Math.random() * 200) + 100;
+  await new Promise(resolve => setTimeout(resolve, latency));
+}
+
+/**
+ * Generate realistic random token counts with time-based variation
+ * Anthropic performs better with:
+ * - Lower average token usage (more efficient)
+ * - Time-based patterns creating different peaks/valleys for demo visualization
  */
 function generateTokenCounts(): Anthropic.Messages.Usage {
-  // Typical input tokens: 50-500
-  const inputTokens = Math.floor(Math.random() * 450) + 50;
-  // Typical output tokens: 20-200
-  const outputTokens = Math.floor(Math.random() * 180) + 20;
+  // Create time-based variation using sine wave for interesting patterns
+  const now = Date.now();
+  const hourOfDay = new Date(now).getHours();
+
+  // Efficiency factor: Claude performs better during peak hours (9-17)
+  // More efficient = lower tokens for same task
+  const isPeakHours = hourOfDay >= 9 && hourOfDay <= 17;
+  const efficiencyMultiplier = isPeakHours ? 0.6 : 0.75; // 40% more efficient during peak
+
+  // Add wave pattern for visual interest (period ~10 seconds for demo)
+  const wavePattern = Math.sin(now / 10000) * 0.2 + 1; // Oscillates 0.8-1.2
+
+  // Anthropic: Lower base ranges showing better efficiency
+  // Base: 30-350 (vs OpenAI's 50-500)
+  const baseInputTokens = Math.floor(Math.random() * 320) + 30;
+  const inputTokens = Math.floor(baseInputTokens * efficiencyMultiplier * wavePattern);
+
+  // Base output: 15-120 (vs OpenAI's 20-200)
+  const baseOutputTokens = Math.floor(Math.random() * 105) + 15;
+  const outputTokens = Math.floor(baseOutputTokens * efficiencyMultiplier * wavePattern);
+
   return {
     input_tokens: inputTokens,
     output_tokens: outputTokens,
@@ -46,9 +100,23 @@ const MOCK_RESPONSE: Anthropic.Message = {
  */
 export class MockAnthropicClient {
   messages = {
-    stream: (
+    stream: async (
       params: Anthropic.Messages.MessageCreateParams,
-    ): Anthropic.Messages.MessageStream => {
+    ): Promise<Anthropic.Messages.MessageStream> => {
+      // Simulate latency
+      await simulateLatency();
+
+      // Simulate errors
+      const errorCheck = shouldSimulateError();
+      if (errorCheck.error) {
+        const errorMessages = {
+          overloaded: "overloaded_error",
+          rate_limit: "rate_limit_error",
+          timeout: "timeout_error",
+        };
+        throw new Error(errorMessages[errorCheck.type as keyof typeof errorMessages] || "api_error");
+      }
+
       const usage = generateTokenCounts();
       const chunks: Anthropic.Messages.MessageStreamEvent[] = [
         {
@@ -129,6 +197,20 @@ export class MockAnthropicClient {
     create: async (
       params: Anthropic.Messages.MessageCreateParams,
     ): Promise<Anthropic.Message> => {
+      // Simulate latency
+      await simulateLatency();
+
+      // Simulate errors
+      const errorCheck = shouldSimulateError();
+      if (errorCheck.error) {
+        const errorMessages = {
+          overloaded: "overloaded_error",
+          rate_limit: "rate_limit_error",
+          timeout: "timeout_error",
+        };
+        throw new Error(errorMessages[errorCheck.type as keyof typeof errorMessages] || "api_error");
+      }
+
       // Mock streaming mode
       if (params.stream) {
         // Return a mock stream

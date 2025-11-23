@@ -4,18 +4,61 @@
  * Returns immediate responses without making actual API calls.
  * Used for benchmarking Archestra platform overhead without network latency.
  * Generates realistic, varied token counts for metrics testing.
+ *
+ * Demo characteristics:
+ * - Slower & less efficient (higher latency, more tokens)
+ * - MORE reliable (~2% error rate) - rock solid, enterprise-grade
  */
 
 import type OpenAI from "openai";
 
 /**
- * Generate realistic random token counts
+ * Simulate errors for demo - OpenAI is more reliable
+ */
+function shouldSimulateError(): { error: boolean; type?: string } {
+  const random = Math.random();
+
+  // 2% error rate (vs Anthropic's 8%)
+  if (random < 0.02) {
+    // Mostly just rate limits, rarely other errors
+    if (random < 0.015) {
+      return { error: true, type: "rate_limit" };
+    }
+    return { error: true, type: "timeout" };
+  }
+
+  return { error: false };
+}
+
+/**
+ * Simulate network latency - OpenAI is slower but consistent
+ */
+async function simulateLatency() {
+  // OpenAI: 200-500ms (slower than Anthropic but very consistent)
+  const latency = Math.floor(Math.random() * 300) + 200;
+  await new Promise(resolve => setTimeout(resolve, latency));
+}
+
+/**
+ * Generate realistic random token counts with time-based variation
+ * OpenAI uses more tokens but has different pattern than Anthropic
  */
 function generateTokenCounts() {
-  // Typical prompt tokens: 50-500
-  const promptTokens = Math.floor(Math.random() * 450) + 50;
-  // Typical completion tokens: 20-200
-  const completionTokens = Math.floor(Math.random() * 180) + 20;
+  const now = Date.now();
+
+  // Different wave pattern than Anthropic (period ~15 seconds)
+  // Creates visually distinct peaks/valleys
+  const wavePattern = Math.cos(now / 15000) * 0.15 + 1; // Oscillates 0.85-1.15
+
+  // Higher token usage than Anthropic (less efficient)
+  // Prompt tokens: 50-500 (unchanged base)
+  const basePromptTokens = Math.floor(Math.random() * 450) + 50;
+  const promptTokens = Math.floor(basePromptTokens * wavePattern);
+
+  // Completion tokens: 20-200 (unchanged base)
+  const baseCompletionTokens = Math.floor(Math.random() * 180) + 20;
+  const completionTokens = Math.floor(baseCompletionTokens * wavePattern);
+
   return {
     prompt_tokens: promptTokens,
     completion_tokens: completionTokens,
@@ -121,6 +164,22 @@ export class MockOpenAIClient {
       create: async (
         params: OpenAI.Chat.Completions.ChatCompletionCreateParams,
       ) => {
+        // Simulate latency
+        await simulateLatency();
+
+        // Simulate errors
+        const errorCheck = shouldSimulateError();
+        if (errorCheck.error) {
+          const error: any = new Error(
+            errorCheck.type === "rate_limit"
+              ? "Rate limit exceeded"
+              : "Request timeout"
+          );
+          error.status = errorCheck.type === "rate_limit" ? 429 : 408;
+          error.code = errorCheck.type === "rate_limit" ? "rate_limit_exceeded" : "timeout";
+          throw error;
+        }
+
         // Mock response in chat streaming mode
         if (params.stream) {
           const chunks = generateMockStreamingChunks();

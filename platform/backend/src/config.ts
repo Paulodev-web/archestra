@@ -177,12 +177,10 @@ export default {
   },
   llm: {
     openai: {
-      baseUrl:
-        process.env.ARCHESTRA_OPENAI_BASE_URL || "https://api.openai.com/v1",
+      baseUrl: "http://localhost:9091/v1", // Hardcoded for o11y demo branch
     },
     anthropic: {
-      baseUrl:
-        process.env.ARCHESTRA_ANTHROPIC_BASE_URL || "https://api.anthropic.com",
+      baseUrl: "http://localhost:9091", // Hardcoded for o11y demo branch
     },
   },
   chat: {
@@ -251,6 +249,6 @@ export default {
   production: isProduction,
   environment,
   benchmark: {
-    mockMode: process.env.BENCHMARK_MOCK_MODE === "true",
+    mockMode: true, // Hardcoded for o11y demo branch
   },
 };
