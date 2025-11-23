@@ -7,7 +7,7 @@
  *
  * Demo characteristics:
  * - Fast & efficient (lower latency, fewer tokens)
- * - LESS reliable (~8-10% error rate) - shows real-world trade-offs
+ * - LESS reliable (~8% error rate) - realistic LLM errors like overloaded servers, rate limits, timeouts
  */
 
 import type Anthropic from "@anthropic-ai/sdk";
@@ -17,19 +17,34 @@ import * as llmMetrics from "@/llm-metrics";
 /**
  * Simulate errors for demo - Anthropic is less reliable
  */
-function shouldSimulateError(): { error: boolean; type?: string } {
+function shouldSimulateError(): { error: boolean; type?: string; message?: string; statusCode?: number } {
   const random = Math.random();
 
   // 8% error rate (vs OpenAI's 2%)
   if (random < 0.08) {
-    // Different error types
+    // Different error types with realistic messages
     if (random < 0.03) {
-      return { error: true, type: "overloaded" };
+      return {
+        error: true,
+        type: "overloaded_error",
+        message: "Anthropic is currently experiencing high demand. Please try again in a few moments.",
+        statusCode: 529
+      };
     }
     if (random < 0.06) {
-      return { error: true, type: "rate_limit" };
+      return {
+        error: true,
+        type: "rate_limit_error",
+        message: "Your request rate has exceeded the allowed limit. Please reduce your request frequency.",
+        statusCode: 429
+      };
     }
-    return { error: true, type: "timeout" };
+    return {
+      error: true,
+      type: "timeout",
+      message: "Request timed out while waiting for model response. Please try again.",
+      statusCode: 408
+    };
   }
 
   return { error: false };
@@ -122,21 +137,17 @@ export class MockAnthropicClient {
         // Record error metrics
         if (this.agent) {
           const duration = (Date.now() - startTime) / 1000;
-          const statusCodeMap = {
-            overloaded: 529,
-            rate_limit: 429,
-            timeout: 408,
-          };
-          const statusCode = statusCodeMap[errorCheck.type as keyof typeof statusCodeMap] || 500;
-          llmMetrics.reportLLMDuration("anthropic", this.agent, duration, statusCode);
+          llmMetrics.reportLLMDuration("anthropic", this.agent, duration, errorCheck.statusCode || 500);
         }
 
-        const errorMessages = {
-          overloaded: "overloaded_error",
-          rate_limit: "rate_limit_error",
-          timeout: "timeout_error",
+        // Throw realistic Anthropic API error
+        const error: any = new Error(errorCheck.message || "API error");
+        error.status = errorCheck.statusCode;
+        error.error = {
+          type: errorCheck.type,
+          message: errorCheck.message,
         };
-        throw new Error(errorMessages[errorCheck.type as keyof typeof errorMessages] || "api_error");
+        throw error;
       }
 
       // Record success metrics
@@ -236,21 +247,17 @@ export class MockAnthropicClient {
         // Record error metrics
         if (this.agent) {
           const duration = (Date.now() - startTime) / 1000;
-          const statusCodeMap = {
-            overloaded: 529,
-            rate_limit: 429,
-            timeout: 408,
-          };
-          const statusCode = statusCodeMap[errorCheck.type as keyof typeof statusCodeMap] || 500;
-          llmMetrics.reportLLMDuration("anthropic", this.agent, duration, statusCode);
+          llmMetrics.reportLLMDuration("anthropic", this.agent, duration, errorCheck.statusCode || 500);
         }
 
-        const errorMessages = {
-          overloaded: "overloaded_error",
-          rate_limit: "rate_limit_error",
-          timeout: "timeout_error",
+        // Throw realistic Anthropic API error
+        const error: any = new Error(errorCheck.message || "API error");
+        error.status = errorCheck.statusCode;
+        error.error = {
+          type: errorCheck.type,
+          message: errorCheck.message,
         };
-        throw new Error(errorMessages[errorCheck.type as keyof typeof errorMessages] || "api_error");
+        throw error;
       }
 
       // Record success metrics

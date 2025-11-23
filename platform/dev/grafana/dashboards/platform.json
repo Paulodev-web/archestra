@@ -977,6 +977,24 @@
         }
       ],
       "title": "All Traces",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Service": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "traceID": 1,
+              "Start Time": 2,
+              "Duration": 3,
+              "Name": 4
+            },
+            "renameByName": {}
+          }
+        }
+      ],
       "type": "table"
     },
     {
@@ -1187,8 +1205,14 @@
             },
             {
               "id": "96b7f7e3",
-              "operator": "=",
-              "scope": "span"
+              "isCustomValue": true,
+              "operator": "=~",
+              "scope": "span",
+              "tag": "http.route",
+              "value": [
+                "/v1/.*"
+              ],
+              "valueType": "string"
             }
           ],
           "limit": 50,
@@ -1206,23 +1230,16 @@
           "id": "organize",
           "options": {
             "excludeByName": {
-              "traceID": false
+              "Service": true,
+              "Name": true
             },
             "includeByName": {},
             "indexByName": {
-              "Duration": 3,
-              "Start Time": 0,
-              "span.agent.name": 1,
-              "span.http.status_code": 2,
-              "traceID": 4
+              "traceID": 1,
+              "Start Time": 2,
+              "Duration": 3
             },
-            "renameByName": {
-              "Duration": "Duration",
-              "Start Time": "Time",
-              "span.agent.name": "Agent",
-              "span.http.status_code": "Status Code",
-              "traceID": "Trace ID"
-            }
+            "renameByName": {}
           }
         }
       ],
@@ -1533,7 +1550,6 @@
       },
       {
         "current": {
-          "selected": true,
           "text": [
             "Support Bot A (OpenAI)",
             "Support Bot B (Anthropic)"
@@ -1573,5 +1589,5 @@
   "timezone": "",
   "title": "Archestra Platform",
   "uid": "archestra-platform",
-  "version": 27
+  "version": 43
 }

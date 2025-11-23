@@ -7,7 +7,7 @@
  *
  * Demo characteristics:
  * - Slower & less efficient (higher latency, more tokens)
- * - MORE reliable (~2% error rate) - rock solid, enterprise-grade
+ * - MORE reliable (~2% error rate) - realistic but rare LLM errors like rate limits, timeouts
  */
 
 import type OpenAI from "openai";
@@ -17,16 +17,28 @@ import * as llmMetrics from "@/llm-metrics";
 /**
  * Simulate errors for demo - OpenAI is more reliable
  */
-function shouldSimulateError(): { error: boolean; type?: string } {
+function shouldSimulateError(): { error: boolean; type?: string; message?: string; statusCode?: number; code?: string } {
   const random = Math.random();
 
   // 2% error rate (vs Anthropic's 8%)
   if (random < 0.02) {
     // Mostly just rate limits, rarely other errors
     if (random < 0.015) {
-      return { error: true, type: "rate_limit" };
+      return {
+        error: true,
+        type: "rate_limit_error",
+        message: "Rate limit exceeded. You are sending requests too quickly. Please pace your requests.",
+        statusCode: 429,
+        code: "rate_limit_exceeded"
+      };
     }
-    return { error: true, type: "timeout" };
+    return {
+      error: true,
+      type: "timeout",
+      message: "Request timed out. The server took too long to respond.",
+      statusCode: 408,
+      code: "timeout"
+    };
   }
 
   return { error: false };
@@ -183,17 +195,14 @@ export class MockOpenAIClient {
           // Record error metrics
           if (this.agent) {
             const duration = (Date.now() - startTime) / 1000;
-            const statusCode = errorCheck.type === "rate_limit" ? 429 : 408;
-            llmMetrics.reportLLMDuration("openai", this.agent, duration, statusCode);
+            llmMetrics.reportLLMDuration("openai", this.agent, duration, errorCheck.statusCode || 500);
           }
 
-          const error: any = new Error(
-            errorCheck.type === "rate_limit"
-              ? "Rate limit exceeded"
-              : "Request timeout"
-          );
-          error.status = errorCheck.type === "rate_limit" ? 429 : 408;
-          error.code = errorCheck.type === "rate_limit" ? "rate_limit_exceeded" : "timeout";
+          // Throw realistic OpenAI API error
+          const error: any = new Error(errorCheck.message || "API error");
+          error.status = errorCheck.statusCode;
+          error.code = errorCheck.code;
+          error.type = errorCheck.type;
           throw error;
         }
 
