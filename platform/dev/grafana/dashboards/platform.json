@@ -1195,7 +1195,7 @@
             {
               "id": "status-filter",
               "isCustomValue": false,
-              "operator": ">=",
+              "operator": ">",
               "scope": "span",
               "tag": "http.response.status_code",
               "value": [
