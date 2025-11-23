@@ -688,6 +688,11 @@ const openAiProxyRoutes: FastifyPluginAsyncZod = async (fastify) => {
           ? utils.adapters.openai.getUsageTokens(response.usage)
           : { input: null, output: null };
 
+        // Report token metrics
+        if (response.usage) {
+          reportLLMTokens("openai", resolvedAgent, tokenUsage);
+        }
+
         // Only calculate costs if cost optimization is enabled
         let cost: number | undefined;
         let baselineCost: number | undefined;

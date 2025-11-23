@@ -778,6 +778,11 @@ const anthropicProxyRoutes: FastifyPluginAsyncZod = async (fastify) => {
           ? utils.adapters.anthropic.getUsageTokens(response.usage)
           : { input: null, output: null };
 
+        // Report token metrics
+        if (response.usage) {
+          reportLLMTokens("anthropic", resolvedAgent, tokenUsage);
+        }
+
         // Calculate costs using database pricing (TokenPriceModel)
         // Only calculate costs if cost optimization is enabled
         let cost: number | undefined;
