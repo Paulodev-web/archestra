@@ -1663,7 +1663,7 @@
         },
         "definition": "label_values(llm_request_duration_seconds_count, agent_name)",
         "description": "Filter error traces by agent",
-        "includeAll": false,
+        "includeAll": true,
         "label": "Agent Filter",
         "multi": true,
         "name": "agent_filter",
