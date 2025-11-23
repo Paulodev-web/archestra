@@ -8,8 +8,8 @@ receivers:
 
 processors:
   batch:
-    timeout: 10s
-    send_batch_size: 1024
+    timeout: 2s  # Reduced from 10s for faster trace delivery (demo optimization)
+    send_batch_size: 100  # Smaller batches for faster delivery
 
   # Add resource attributes
   resource:

@@ -11,6 +11,8 @@
  */
 
 import type OpenAI from "openai";
+import type { Agent } from "@/types";
+import * as llmMetrics from "@/llm-metrics";
 
 /**
  * Simulate errors for demo - OpenAI is more reliable
@@ -159,17 +161,32 @@ function generateMockStreamingChunks(): OpenAI.Chat.Completions.ChatCompletionCh
  * Mock OpenAI Client that returns immediate responses with realistic token counts
  */
 export class MockOpenAIClient {
+  private agent: Agent | null = null;
+
+  setAgent(agent: Agent) {
+    this.agent = agent;
+  }
+
   chat = {
     completions: {
       create: async (
         params: OpenAI.Chat.Completions.ChatCompletionCreateParams,
       ) => {
+        const startTime = Date.now();
+
         // Simulate latency
         await simulateLatency();
 
         // Simulate errors
         const errorCheck = shouldSimulateError();
         if (errorCheck.error) {
+          // Record error metrics
+          if (this.agent) {
+            const duration = (Date.now() - startTime) / 1000;
+            const statusCode = errorCheck.type === "rate_limit" ? 429 : 408;
+            llmMetrics.reportLLMDuration("openai", this.agent, duration, statusCode);
+          }
+
           const error: any = new Error(
             errorCheck.type === "rate_limit"
               ? "Rate limit exceeded"
@@ -178,6 +195,12 @@ export class MockOpenAIClient {
           error.status = errorCheck.type === "rate_limit" ? 429 : 408;
           error.code = errorCheck.type === "rate_limit" ? "rate_limit_exceeded" : "timeout";
           throw error;
+        }
+
+        // Record success metrics
+        if (this.agent) {
+          const duration = (Date.now() - startTime) / 1000;
+          llmMetrics.reportLLMDuration("openai", this.agent, duration, 200);
         }
 
         // Mock response in chat streaming mode
@@ -206,4 +229,5 @@ export class MockOpenAIClient {
       },
     },
   };
+
 }

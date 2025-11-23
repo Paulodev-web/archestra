@@ -1044,7 +1044,7 @@
         "type": "tempo",
         "uid": "$traces_datasource"
       },
-      "description": "Failed requests only - click to investigate why each agent failed",
+      "description": "Failed LLM requests only (errors from mock client) - use Agent Filter at the top to select specific bots, then click any trace to investigate",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1193,14 +1193,14 @@
           ],
           "limit": 50,
           "metricsQueryType": "range",
-          "query": "{ resource.service.name=\"Archestra Platform API\" && span.http.status_code >= 400 && span.agent.name=~\"${agent_filter:regex}\" }",
+          "query": "{ resource.service.name=\"Archestra Platform API\" && span.http.route=~\"/v1/.*\" && span.http.status_code >= 400 } && { span.agent.name=~\"${agent_filter:regex}\" }",
           "queryType": "traceqlSearch",
           "refId": "A",
           "serviceMapUseNativeHistograms": false,
           "tableType": "traces"
         }
       ],
-      "title": "Error Traces by Agent",
+      "title": "LLM Error Traces",
       "transformations": [
         {
           "id": "organize",
@@ -1535,10 +1535,12 @@
         "current": {
           "selected": true,
           "text": [
-            "All"
+            "Support Bot A (OpenAI)",
+            "Support Bot B (Anthropic)"
           ],
           "value": [
-            "$__all"
+            "Support Bot A (OpenAI)",
+            "Support Bot B (Anthropic)"
           ]
         },
         "datasource": {
@@ -1547,7 +1549,7 @@
         },
         "definition": "label_values(llm_request_duration_seconds_count, agent_name)",
         "description": "Filter error traces by agent",
-        "includeAll": true,
+        "includeAll": false,
         "label": "Agent Filter",
         "multi": true,
         "name": "agent_filter",

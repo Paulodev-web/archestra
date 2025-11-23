@@ -170,6 +170,29 @@ export function reportBlockedTools(
 }
 
 /**
+ * Reports LLM request duration with status code
+ */
+export function reportLLMDuration(
+  provider: SupportedProvider,
+  agent: Agent,
+  durationSeconds: number,
+  statusCode: number,
+): void {
+  if (!llmRequestDuration) {
+    logger.warn("LLM metrics not initialized, skipping duration reporting");
+    return;
+  }
+
+  llmRequestDuration.observe(
+    buildMetricLabels(agent, {
+      provider,
+      status_code: statusCode.toString(),
+    }),
+    durationSeconds,
+  );
+}
+
+/**
  * Returns a fetch wrapped in observability. Use it as OpenAI or Anthropic provider custom fetch implementation.
  */
 export function getObservableFetch(

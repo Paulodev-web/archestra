@@ -1,4 +1,4 @@
-import { type Span, trace } from "@opentelemetry/api";
+import { type Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Agent, SupportedProvider } from "@/types";
 
 /**
@@ -57,7 +57,17 @@ export async function startActiveLlmSpan<T>(
         }
       }
 
-      return await callback(span);
+      try {
+        return await callback(span);
+      } catch (error) {
+        // Record error on span
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: error instanceof Error ? error.message : String(error),
+        });
+        span.recordException(error instanceof Error ? error : new Error(String(error)));
+        throw error;
+      }
     },
   );
 }

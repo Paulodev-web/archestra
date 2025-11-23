@@ -10,6 +10,16 @@ distributor:
         http:
           endpoint: 0.0.0.0:4318
 
+# Optimize for fast trace visibility (demo configuration)
+ingester:
+  trace_idle_period: 5s  # Flush idle traces after 5s (default: 10s)
+  max_block_duration: 1m  # Create blocks every 1 min (default: 30m)
+  max_block_bytes: 5_000_000  # 5MB blocks for faster indexing (default: 100MB)
+
+compactor:
+  compaction:
+    block_retention: 1h  # Keep blocks for 1h (sufficient for demos)
+
 storage:
   trace:
     backend: local

@@ -159,13 +159,18 @@ const anthropicProxyRoutes: FastifyPluginAsyncZod = async (fastify) => {
 
     const { "x-api-key": anthropicApiKey } = headers;
 
-    const anthropicClient = config.benchmark.mockMode
-      ? (new MockAnthropicClient() as unknown as AnthropicProvider)
-      : new AnthropicProvider({
-          apiKey: anthropicApiKey,
-          baseURL: config.llm.anthropic.baseUrl,
-          fetch: getObservableFetch("anthropic", resolvedAgent),
-        });
+    let anthropicClient: AnthropicProvider;
+    if (config.benchmark.mockMode) {
+      const mockClient = new MockAnthropicClient();
+      mockClient.setAgent(resolvedAgent);
+      anthropicClient = mockClient as unknown as AnthropicProvider;
+    } else {
+      anthropicClient = new AnthropicProvider({
+        apiKey: anthropicApiKey,
+        baseURL: config.llm.anthropic.baseUrl,
+        fetch: getObservableFetch("anthropic", resolvedAgent),
+      });
+    }
 
     try {
       // Check if current usage limits are already exceeded

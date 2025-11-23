@@ -11,6 +11,8 @@
  */
 
 import type Anthropic from "@anthropic-ai/sdk";
+import type { Agent } from "@/types";
+import * as llmMetrics from "@/llm-metrics";
 
 /**
  * Simulate errors for demo - Anthropic is less reliable
@@ -99,22 +101,48 @@ const MOCK_RESPONSE: Anthropic.Message = {
  * Mock Anthropic Client that returns immediate responses
  */
 export class MockAnthropicClient {
+  private agent: Agent | null = null;
+
+  setAgent(agent: Agent) {
+    this.agent = agent;
+  }
+
   messages = {
     stream: async (
       params: Anthropic.Messages.MessageCreateParams,
     ): Promise<Anthropic.Messages.MessageStream> => {
+      const startTime = Date.now();
+
       // Simulate latency
       await simulateLatency();
 
       // Simulate errors
       const errorCheck = shouldSimulateError();
       if (errorCheck.error) {
+        // Record error metrics
+        if (this.agent) {
+          const duration = (Date.now() - startTime) / 1000;
+          const statusCodeMap = {
+            overloaded: 529,
+            rate_limit: 429,
+            timeout: 408,
+          };
+          const statusCode = statusCodeMap[errorCheck.type as keyof typeof statusCodeMap] || 500;
+          llmMetrics.reportLLMDuration("anthropic", this.agent, duration, statusCode);
+        }
+
         const errorMessages = {
           overloaded: "overloaded_error",
           rate_limit: "rate_limit_error",
           timeout: "timeout_error",
         };
         throw new Error(errorMessages[errorCheck.type as keyof typeof errorMessages] || "api_error");
+      }
+
+      // Record success metrics
+      if (this.agent) {
+        const duration = (Date.now() - startTime) / 1000;
+        llmMetrics.reportLLMDuration("anthropic", this.agent, duration, 200);
       }
 
       const usage = generateTokenCounts();
@@ -197,18 +225,38 @@ export class MockAnthropicClient {
     create: async (
       params: Anthropic.Messages.MessageCreateParams,
     ): Promise<Anthropic.Message> => {
+      const startTime = Date.now();
+
       // Simulate latency
       await simulateLatency();
 
       // Simulate errors
       const errorCheck = shouldSimulateError();
       if (errorCheck.error) {
+        // Record error metrics
+        if (this.agent) {
+          const duration = (Date.now() - startTime) / 1000;
+          const statusCodeMap = {
+            overloaded: 529,
+            rate_limit: 429,
+            timeout: 408,
+          };
+          const statusCode = statusCodeMap[errorCheck.type as keyof typeof statusCodeMap] || 500;
+          llmMetrics.reportLLMDuration("anthropic", this.agent, duration, statusCode);
+        }
+
         const errorMessages = {
           overloaded: "overloaded_error",
           rate_limit: "rate_limit_error",
           timeout: "timeout_error",
         };
         throw new Error(errorMessages[errorCheck.type as keyof typeof errorMessages] || "api_error");
+      }
+
+      // Record success metrics
+      if (this.agent) {
+        const duration = (Date.now() - startTime) / 1000;
+        llmMetrics.reportLLMDuration("anthropic", this.agent, duration, 200);
       }
 
       // Mock streaming mode

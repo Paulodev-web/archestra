@@ -143,13 +143,18 @@ const openAiProxyRoutes: FastifyPluginAsyncZod = async (fastify) => {
     );
 
     const { authorization: openAiApiKey } = headers;
-    const openAiClient = config.benchmark.mockMode
-      ? (new MockOpenAIClient() as unknown as OpenAIProvider)
-      : new OpenAIProvider({
-          apiKey: openAiApiKey,
-          baseURL: config.llm.openai.baseUrl,
-          fetch: getObservableFetch("openai", resolvedAgent),
-        });
+    let openAiClient: OpenAIProvider;
+    if (config.benchmark.mockMode) {
+      const mockClient = new MockOpenAIClient();
+      mockClient.setAgent(resolvedAgent);
+      openAiClient = mockClient as unknown as OpenAIProvider;
+    } else {
+      openAiClient = new OpenAIProvider({
+        apiKey: openAiApiKey,
+        baseURL: config.llm.openai.baseUrl,
+        fetch: getObservableFetch("openai", resolvedAgent),
+      });
+    }
 
     try {
       // Check if current usage limits are already exceeded
