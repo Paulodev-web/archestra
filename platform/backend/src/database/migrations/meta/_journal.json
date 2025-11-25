@@ -456,6 +456,13 @@
       "when": 1764098743958,
       "tag": "0064_interactions_add_toon_cost_savings",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1764103132085,
+      "tag": "0065_stale_triathlon",
+      "breakpoints": true
     }
   ]
 }
