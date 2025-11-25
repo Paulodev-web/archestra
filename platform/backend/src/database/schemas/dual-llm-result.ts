@@ -23,6 +23,10 @@ const dualLlmResultsTable = pgTable(
     toolCallId: text("tool_call_id").notNull(),
     conversations: jsonb("conversations").$type<DualLlmMessage[]>().notNull(),
     result: text("result").notNull(),
+    quarantinedMemory: jsonb("quarantined_memory")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   },
   (table) => ({

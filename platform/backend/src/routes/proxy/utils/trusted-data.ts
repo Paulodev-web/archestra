@@ -1,4 +1,8 @@
-import { DualLlmResultModel, TrustedDataPolicyModel } from "@/models";
+import {
+  DualLlmResultModel,
+  ToolModel,
+  TrustedDataPolicyModel,
+} from "@/models";
 import type {
   CommonMessage,
   SupportedProvider,
@@ -16,7 +20,8 @@ import { DualLlmSubagent } from "./dual-llm-subagent";
  * @param considerContextUntrusted - If true, marks context as untrusted from the beginning
  * @param onDualLlmStart - Optional callback when dual LLM processing starts
  * @param onDualLlmProgress - Optional callback for dual LLM Q&A progress
- * @returns Object with tool result updates and trust status
+ * @param existingQuarantinedMemory - Optional existing quarantined memory from previous calls
+ * @returns Object with tool result updates, trust status, and quarantined memory
  */
 export async function evaluateIfContextIsTrusted(
   messages: CommonMessage[],
@@ -30,14 +35,21 @@ export async function evaluateIfContextIsTrusted(
     options: string[];
     answer: string;
   }) => void,
+  existingQuarantinedMemory?: Record<string, unknown>,
 ): Promise<{
   toolResultUpdates: ToolResultUpdates;
   contextIsTrusted: boolean;
   usedDualLlm: boolean;
+  quarantinedMemory: Record<string, unknown>;
 }> {
   const toolResultUpdates: ToolResultUpdates = {};
   let hasUntrustedData = false;
   let usedDualLlm = false;
+
+  // Create quarantined memory Map, merging with existing memory if provided
+  const quarantinedMemory = new Map<string, unknown>(
+    existingQuarantinedMemory ? Object.entries(existingQuarantinedMemory) : [],
+  );
 
   // If agent configured to consider context untrusted from the beginning,
   // mark context as untrusted immediately and skip evaluation
@@ -46,6 +58,7 @@ export async function evaluateIfContextIsTrusted(
       toolResultUpdates: {},
       contextIsTrusted: false,
       usedDualLlm: false,
+      quarantinedMemory: Object.fromEntries(quarantinedMemory),
     };
   }
 
@@ -74,6 +87,7 @@ export async function evaluateIfContextIsTrusted(
       toolResultUpdates,
       contextIsTrusted: true,
       usedDualLlm: false,
+      quarantinedMemory: Object.fromEntries(quarantinedMemory),
     };
   }
 
@@ -88,7 +102,7 @@ export async function evaluateIfContextIsTrusted(
 
   // Process evaluation results
   for (let i = 0; i < allToolCalls.length; i++) {
-    const { toolCallId, toolResult } = allToolCalls[i];
+    const { toolCallId, toolName, toolResult } = allToolCalls[i];
     const evaluation = evaluationResults.get(i.toString());
 
     if (!evaluation) {
@@ -128,15 +142,23 @@ export async function evaluateIfContextIsTrusted(
         // Extract user request from messages (last user message)
         const userRequest = extractUserRequest(messages);
 
+        // Fetch tool information including input schema
+        // We use findByName without user access checks since we're in a trusted proxy context
+        const tool = await ToolModel.findByName(toolName);
+        const toolInputSchema = tool?.parameters;
+
         const dualLlmSubagent = await DualLlmSubagent.create(
           {
             toolCallId,
             userRequest,
             toolResult,
+            toolName,
+            toolInputSchema,
           },
           agentId,
           apiKey,
           provider,
+          quarantinedMemory,
         );
 
         // Get safe summary and store as update
@@ -155,6 +177,7 @@ export async function evaluateIfContextIsTrusted(
     toolResultUpdates,
     contextIsTrusted: !hasUntrustedData,
     usedDualLlm,
+    quarantinedMemory: Object.fromEntries(quarantinedMemory),
   };
 }
 

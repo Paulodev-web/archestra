@@ -10,6 +10,8 @@ export const getAgentIdFromRequest = async (
 
 export * as adapters from "./adapters";
 export * as costOptimization from "./cost-optimization";
+export * as quarantinedMemory from "./quarantined-memory";
+export * as quarantinedMemoryStore from "./quarantined-memory-store";
 export * as toolInvocation from "./tool-invocation";
 export * as tools from "./tools";
 export * as tracing from "./tracing";

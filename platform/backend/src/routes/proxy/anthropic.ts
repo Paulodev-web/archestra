@@ -273,7 +273,11 @@ const anthropicProxyRoutes: FastifyPluginAsyncZod = async (fastify) => {
         reply.header("request-id", `req-proxy-${Date.now()}`);
       }
 
-      const { toolResultUpdates, contextIsTrusted } =
+      // Get existing quarantined memory for this agent
+      const existingQM =
+        utils.quarantinedMemoryStore.getQuarantinedMemory(resolvedAgentId);
+
+      const { toolResultUpdates, contextIsTrusted, quarantinedMemory } =
         await utils.trustedData.evaluateIfContextIsTrusted(
           commonMessages,
           resolvedAgentId,
@@ -315,7 +319,14 @@ const anthropicProxyRoutes: FastifyPluginAsyncZod = async (fastify) => {
                 );
               }
             : undefined,
+          existingQM,
         );
+
+      // Update quarantined memory store
+      utils.quarantinedMemoryStore.updateQuarantinedMemory(
+        resolvedAgentId,
+        quarantinedMemory,
+      );
 
       // Apply updates back to Anthropic messages
       const filteredMessages = utils.adapters.anthropic.applyUpdates(
@@ -678,7 +689,7 @@ const anthropicProxyRoutes: FastifyPluginAsyncZod = async (fastify) => {
         return reply;
       } else {
         // Non-streaming response with span to measure LLM call duration
-        const response = await utils.tracing.startActiveLlmSpan(
+        let response = await utils.tracing.startActiveLlmSpan(
           "anthropic.messages",
           "anthropic",
           model,
@@ -696,6 +707,83 @@ const anthropicProxyRoutes: FastifyPluginAsyncZod = async (fastify) => {
             return response;
           },
         );
+
+        // Check for REVEAL signal in response text
+        const textContent = response.content
+          .filter((c) => c.type === "text")
+          .map((c) => c.text)
+          .join(" ");
+        const hasReveal = textContent.includes("REVEAL");
+        const hasToolCalls = response.content.some(
+          (c) => c.type === "tool_use",
+        );
+
+        // If REVEAL detected and no tool calls, substitute QM and make internal call
+        if (hasReveal && !hasToolCalls) {
+          fastify.log.info(
+            "REVEAL signal detected, substituting quarantined memory",
+          );
+
+          // Substitute all [QM:key] in messages
+          const substitutedMessages = filteredMessages.map((msg) => ({
+            ...msg,
+            content:
+              typeof msg.content === "string"
+                ? utils.quarantinedMemory.substituteQuarantinedMemory(
+                    msg.content,
+                    quarantinedMemory,
+                  )
+                : Array.isArray(msg.content)
+                  ? msg.content.map((block) =>
+                      block.type === "text"
+                        ? {
+                            ...block,
+                            text: utils.quarantinedMemory.substituteQuarantinedMemory(
+                              block.text,
+                              quarantinedMemory,
+                            ),
+                          }
+                        : block,
+                    )
+                  : msg.content,
+          }));
+
+          // Add assistant message with REVEAL removed and system message
+          const revealRemovedText = textContent.replace(/REVEAL/g, "").trim();
+          substitutedMessages.push({
+            role: "assistant",
+            content: revealRemovedText,
+          });
+          substitutedMessages.push({
+            role: "user",
+            content:
+              "Quarantined Memory values have been revealed. You may now make tool calls with the real values. Context is now UNTRUSTED.",
+          });
+
+          // Make internal LLM call with substituted messages
+          response = await utils.tracing.startActiveLlmSpan(
+            "anthropic.messages.reveal",
+            "anthropic",
+            model,
+            false,
+            resolvedAgent,
+            async (llmSpan) => {
+              const response = await anthropicClient.messages.create({
+                // biome-ignore lint/suspicious/noExplicitAny: Anthropic still WIP
+                ...(body as any),
+                messages: substitutedMessages,
+                tools: mergedTools.length > 0 ? mergedTools : undefined,
+                stream: false,
+              });
+              llmSpan.end();
+              return response;
+            },
+          );
+
+          fastify.log.info(
+            "Internal LLM call completed after REVEAL, context is now UNTRUSTED",
+          );
+        }
 
         const toolCalls = response.content.filter(
           (content) => content.type === "tool_use",

@@ -24,6 +24,10 @@ export class DualLlmSubagent {
   llmClient: DualLlmClient; // LLM client instance
   originalUserRequest: string; // Extracted user request
   toolResult: unknown; // Extracted tool result
+  toolName: string; // The tool name
+  // biome-ignore lint/suspicious/noExplicitAny: tool schemas can be any shape
+  toolInputSchema?: any; // The tool input schema (parameters)
+  quarantinedMemory: Map<string, unknown>; // Shared quarantined memory across all subagents
 
   private constructor(
     config: DualLlmConfig,
@@ -32,6 +36,10 @@ export class DualLlmSubagent {
     llmClient: DualLlmClient,
     originalUserRequest: string,
     toolResult: unknown,
+    toolName: string,
+    // biome-ignore lint/suspicious/noExplicitAny: tool schemas can be any shape
+    toolInputSchema?: any,
+    quarantinedMemory: Map<string, unknown> = new Map(),
   ) {
     this.config = config;
     this.agentId = agentId;
@@ -39,6 +47,9 @@ export class DualLlmSubagent {
     this.llmClient = llmClient;
     this.originalUserRequest = originalUserRequest;
     this.toolResult = toolResult;
+    this.toolName = toolName;
+    this.toolInputSchema = toolInputSchema;
+    this.quarantinedMemory = quarantinedMemory;
   }
 
   static async create(
@@ -46,6 +57,7 @@ export class DualLlmSubagent {
     agentId: string,
     apiKey: string,
     provider: SupportedProvider,
+    quarantinedMemory?: Map<string, unknown>,
   ): Promise<DualLlmSubagent> {
     return new DualLlmSubagent(
       await DualLlmConfigModel.getDefault(),
@@ -54,6 +66,9 @@ export class DualLlmSubagent {
       createDualLlmClient(provider, apiKey),
       params.userRequest,
       params.toolResult,
+      params.toolName,
+      params.toolInputSchema,
+      quarantinedMemory || new Map(),
     );
   }
 
@@ -71,11 +86,15 @@ export class DualLlmSubagent {
       answer: string;
     }) => void,
   ): Promise<string> {
-    // Load prompt from database configuration and replace template variable
-    const mainAgentPrompt = this.config.mainAgentPrompt.replace(
-      "{{originalUserRequest}}",
-      this.originalUserRequest,
-    );
+    // Prepare tool input schemas for template replacement
+    const toolInputSchemasText = this.toolInputSchema
+      ? JSON.stringify(this.toolInputSchema, null, 2)
+      : "No input schema available";
+
+    // Load prompt from database configuration and replace template variables
+    const mainAgentPrompt = this.config.mainAgentPrompt
+      .replace("{{originalUserRequest}}", this.originalUserRequest)
+      .replace("{{toolInputSchemas}}", toolInputSchemasText);
 
     const conversation: DualLlmMessage[] = [
       {
@@ -125,10 +144,16 @@ export class DualLlmSubagent {
       }
 
       // Step 3: Quarantined agent answers the question (can see untrusted data)
-      const answerIndex = await this.answerQuestion(question, options);
+      const { answerIndex, storedKey } = await this.answerQuestion(
+        question,
+        options,
+      );
       const selectedOption = options[answerIndex];
 
       logger.info(`\nAnswer: ${answerIndex} - "${selectedOption}"`);
+      if (storedKey) {
+        logger.info(`✓ Stored in Quarantined Memory as '${storedKey}'`);
+      }
 
       // Stream progress if callback provided
       if (onProgress) {
@@ -140,9 +165,13 @@ export class DualLlmSubagent {
       }
 
       // Step 4: Feed the answer back to the main agent
+      let answerMessage = `Answer: ${answerIndex} (${selectedOption})`;
+      if (storedKey) {
+        answerMessage += ` [stored in Quarantined Memory as '${storedKey}']`;
+      }
       conversation.push({
         role: "user",
-        content: `Answer: ${answerIndex} (${selectedOption})`,
+        content: answerMessage,
       });
     }
 
@@ -162,6 +191,7 @@ export class DualLlmSubagent {
       toolCallId: this.toolCallId,
       conversations: conversation,
       result: summary,
+      quarantinedMemory: Object.fromEntries(this.quarantinedMemory),
     });
 
     return summary;
@@ -170,25 +200,35 @@ export class DualLlmSubagent {
   /**
    * Quarantined agent answers a multiple choice question.
    * Has access to untrusted data but can only return an integer index.
+   * Can optionally store exact values in quarantined memory.
    *
    * @param question - The question to answer
    * @param options - Array of possible answers
-   * @returns Index of the selected option (0-based)
+   * @returns Object with answer index and optional stored key
    */
   private async answerQuestion(
     question: string,
     options: string[],
-  ): Promise<number> {
+  ): Promise<{ answerIndex: number; storedKey?: string }> {
     const optionsText = options.map((opt, idx) => `${idx}: ${opt}`).join("\n");
+
+    // Prepare tool input schemas for template replacement
+    const toolInputSchemasText = this.toolInputSchema
+      ? JSON.stringify(this.toolInputSchema, null, 2)
+      : "No input schema available";
 
     // Load quarantined agent prompt from database configuration and replace template variables
     const quarantinedPrompt = this.config.quarantinedAgentPrompt
       .replace("{{toolResultData}}", JSON.stringify(this.toolResult, null, 2))
       .replace("{{question}}", question)
       .replace("{{options}}", optionsText)
-      .replace("{{maxIndex}}", String(options.length - 1));
+      .replace("{{maxIndex}}", String(options.length - 1))
+      .replace("{{toolInputSchemas}}", toolInputSchemasText);
 
-    const parsed = await this.llmClient.chatWithSchema<{ answer: number }>(
+    const parsed = await this.llmClient.chatWithSchema<{
+      answer: number;
+      storeInQuarantinedMemory?: { key: string; value: unknown };
+    }>(
       [{ role: "user", content: quarantinedPrompt }],
       {
         name: "multiple_choice_response",
@@ -198,6 +238,23 @@ export class DualLlmSubagent {
             answer: {
               type: "integer",
               description: "The index of the selected option (0-based)",
+            },
+            storeInQuarantinedMemory: {
+              type: "object",
+              description:
+                "Optional: Store exact value in Quarantined Memory for later use",
+              properties: {
+                key: {
+                  type: "string",
+                  description:
+                    "Memory key name (descriptive, e.g., 'user_id', 'email')",
+                },
+                value: {
+                  description: "Exact value to store from the tool result data",
+                },
+              },
+              required: ["key", "value"],
+              additionalProperties: false,
             },
           },
           required: ["answer"],
@@ -210,16 +267,25 @@ export class DualLlmSubagent {
     // Code-level validation: Check if response has correct structure
     if (!parsed || typeof parsed.answer !== "number") {
       logger.warn("Invalid response structure, defaulting to last option");
-      return options.length - 1;
+      return { answerIndex: options.length - 1 };
     }
 
     // Bounds validation: Ensure answer is within valid range
     const answerIndex = Math.floor(parsed.answer);
     if (answerIndex < 0 || answerIndex >= options.length) {
-      return options.length - 1;
+      return { answerIndex: options.length - 1 };
     }
 
-    return answerIndex;
+    // Store in quarantined memory if provided
+    let storedKey: string | undefined;
+    if (parsed.storeInQuarantinedMemory) {
+      const { key, value } = parsed.storeInQuarantinedMemory;
+      this.quarantinedMemory.set(key, value);
+      storedKey = key;
+      logger.info(`Stored value in Quarantined Memory with key: ${key}`);
+    }
+
+    return { answerIndex, storedKey };
   }
 
   /**
@@ -238,11 +304,15 @@ export class DualLlmSubagent {
       .filter((content) => content.length > 0)
       .join("\n");
 
+    // Prepare tool input schemas for template replacement
+    const toolInputSchemasText = this.toolInputSchema
+      ? JSON.stringify(this.toolInputSchema, null, 2)
+      : "No input schema available";
+
     // Load summary prompt from database configuration and replace template variables
-    const summaryPrompt = this.config.summaryPrompt.replace(
-      "{{qaText}}",
-      qaText,
-    );
+    const summaryPrompt = this.config.summaryPrompt
+      .replace("{{qaText}}", qaText)
+      .replace("{{toolInputSchemas}}", toolInputSchemasText);
 
     const summary = await this.llmClient.chat(
       [{ role: "user", content: summaryPrompt }],

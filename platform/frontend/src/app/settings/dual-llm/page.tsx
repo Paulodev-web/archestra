@@ -430,7 +430,12 @@ function DualLLMContent({
                   {"{"}
                   {"{"}originalUserRequest{"}}"}
                 </CodeText>{" "}
-                for user request.
+                for user request,{" "}
+                <CodeText className="text-xs">
+                  {"{"}
+                  {"{"}toolInputSchemas{"}}"}
+                </CodeText>{" "}
+                for tool input schemas.
               </p>
             </div>
             {mainAgentPrompt !== config?.mainAgentPrompt && (
@@ -484,6 +489,11 @@ function DualLLMContent({
                   {"{"}
                   {"{"}maxIndex{"}}"}
                 </CodeText>
+                ,{" "}
+                <CodeText className="text-xs">
+                  {"{"}
+                  {"{"}toolInputSchemas{"}}"}
+                </CodeText>
               </p>
             </div>
             {quarantinedAgentPrompt !== config?.quarantinedAgentPrompt && (
@@ -514,11 +524,16 @@ function DualLLMContent({
               </Label>
               <p className="text-xs text-muted-foreground mt-1">
                 Prompt for generating safe summary from Q&A. Use{" "}
-                <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                <CodeText className="text-xs">
                   {"{"}
                   {"{"}qaText{"}}"}
-                </code>{" "}
-                for conversation.
+                </CodeText>{" "}
+                for conversation,{" "}
+                <CodeText className="text-xs">
+                  {"{"}
+                  {"{"}toolInputSchemas{"}}"}
+                </CodeText>{" "}
+                for tool input schemas.
               </p>
             </div>
             {summaryPrompt !== config?.summaryPrompt && (

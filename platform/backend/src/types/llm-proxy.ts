@@ -27,4 +27,9 @@ export interface CommonDualLlmParams {
   userRequest: string;
   /** The tool result to be analyzed */
   toolResult: unknown;
+  /** The tool name */
+  toolName: string;
+  /** The tool input schema (parameters) */
+  // biome-ignore lint/suspicious/noExplicitAny: tool schemas can be any shape
+  toolInputSchema?: any;
 }
