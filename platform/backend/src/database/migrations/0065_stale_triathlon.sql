@@ -1,0 +1,1 @@
+ALTER TABLE "dual_llm_results" ADD COLUMN "quarantined_memory" jsonb DEFAULT '{}'::jsonb NOT NULL;
