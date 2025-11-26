@@ -16,7 +16,7 @@ COPY frontend/package.json frontend/
 COPY shared/package.json shared/
 
 # Install all dependencies
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --ignore-scripts
 
 # <----- Builder stage ----->
 FROM base AS builder
@@ -115,7 +115,7 @@ COPY backend/package.json backend/
 COPY frontend/package.json frontend/
 
 # Install production dependencies for both workspaces
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod=false --filter=@backend --filter=@frontend
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod=false --filter=@backend --filter=@frontend --ignore-scripts
 
 # Copy built backend
 COPY --from=builder /app/backend/dist ./backend/dist

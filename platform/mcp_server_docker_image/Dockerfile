@@ -28,7 +28,7 @@ RUN uv pip install --no-cache-dir \
 FROM node:20-alpine AS node-builder
 
 # Install Node.js MCP dependencies globally
-RUN npm install -g \
+RUN npm install -g --ignore-scripts \
    @modelcontextprotocol/sdk \
    typescript@5 \
    zod \
