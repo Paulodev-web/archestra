@@ -346,7 +346,7 @@ export default function ChatPage() {
       <div className="flex h-screen items-center justify-center p-8">
         <Card className="max-w-md">
           <CardHeader>
-            <CardTitle>Anthropic API Key Required</CardTitle>
+            <CardTitle>Anthropic API Key Required123213</CardTitle>
             <CardDescription>
               The chat feature requires an Anthropic API key to function.
             </CardDescription>

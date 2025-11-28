@@ -1,41 +1,10 @@
-# Development + pre-requisite resources
-
-# Define is_prod locally (same logic as main Tiltfile)
-is_prod = os.getenv('PROD') == 'true'
-
-local_resource(
-  'pnpm-install',
-  cmd='CI=true pnpm install',
-  deps=[
-    '../frontend/package.json',
-    '../backend/package.json',
-  ],
-  labels=['dev']
-)
-
-if is_prod:
-  # prod bundle
-  local_resource(
-    'pnpm-prod',
-    cmd='rm -rf frontend/.next && pnpm build',
-    serve_cmd='pnpm start',
-    labels=['dev'],
-    resource_deps=['db-migrate']
-  )
-else:
-  # dev bundle
-  local_resource(
-    'pnpm-dev',
-    serve_cmd='pnpm dev',
-    labels=['dev'],
-    resource_deps=['db-migrate']
-  )
+# Development resources
 
 local_resource(
   'lint:fix',
-  cmd='pnpm type-check && pnpm lint:fix',
+  cmd='kubectl exec -n archestra-dev deployment/archestra-dev-archestra-platform -- pnpm type-check && kubectl exec -n archestra-dev deployment/archestra-dev-archestra-platform -- pnpm lint:fix',
   labels=['dev'],
-  resource_deps=['pnpm-install'],
+  resource_deps=['archestra-dev'],
   deps=[
     "../frontend/src",
     "../backend/src",
@@ -46,18 +15,18 @@ local_resource(
 
 local_resource(
   'lint:fix:unsafe',
-  cmd='pnpm lint:fix:unsafe && tilt trigger lint:fix',
+  cmd='kubectl exec -n archestra-dev deployment/archestra-dev-archestra-platform -- pnpm lint:fix:unsafe && tilt trigger lint:fix',
   labels=['dev'],
-  resource_deps=['pnpm-install'],
+  resource_deps=['archestra-dev'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
 )
 
 local_resource(
   'codegen:api-client',
-  cmd='pnpm codegen:api-client',
+  cmd='kubectl exec -n archestra-dev deployment/archestra-dev-archestra-platform -- pnpm codegen:api-client',
   labels=['dev'],
-  resource_deps=['pnpm-install', 'pnpm-dev'],
+  resource_deps=['archestra-dev'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
 )

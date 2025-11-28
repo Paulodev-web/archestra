@@ -1,0 +1,47 @@
+# Development-specific values for the Archestra Helm chart
+# This file is used for local development with Tilt
+
+archestra:
+  # Image will be built by Tilt with live_update
+  image: archestra-dev
+  imagePullPolicy: Never  # Use local image
+
+  # Allocate more resources for faster compilation
+  resources:
+    requests:
+      cpu: "4"
+      memory: "4Gi"
+    limits:
+      cpu: "8"
+      memory: "8Gi"
+
+  # Environment variables for development
+  env:
+    ARCHESTRA_ANALYTICS: "disabled"
+    NEXT_TELEMETRY_DISABLED: "1"
+
+  # MCP Server Runtime Configuration
+  orchestrator:
+    kubernetes:
+      # Use in-cluster configuration (service account)
+      loadKubeconfigFromCurrentCluster: true
+      # MCP servers will be created in same namespace
+      namespace: archestra-dev
+
+# PostgreSQL configuration for development (subchart)
+postgresql:
+  enabled: true
+  # Override the database URL to use the correct service name
+  # The subchart creates service as: {release-name}-postgresql
+  external_database_url: "postgresql://archestra:archestra_dev_password@archestra-dev-postgresql:5432/archestra_dev?schema=public"
+  auth:
+    database: archestra_dev
+    username: archestra
+    password: archestra_dev_password
+  # Use the secure Bitnami PostgreSQL image
+  image:
+    repository: bitnamisecure/postgresql
+    tag: latest
+  global:
+    security:
+      allowInsecureImages: true

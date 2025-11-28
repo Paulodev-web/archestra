@@ -53,46 +53,50 @@ Check ./docs/docs_writer_prompt.md before changing docs files.
 
 ```bash
 # Development
-tilt up                                 # Start full development environment
-pnpm dev                                # Start all workspaces
-pnpm lint                               # Lint and auto-fix
-pnpm type-check                         # Check TypeScript types
-pnpm test                               # Run tests
-pnpm test:e2e                           # Run e2e tests with Playwright (chromium, webkit, firefox)
+tilt up                                 # Start full development environment (Docker + PostgreSQL)
 
-# Dependency Management
-pnpm install                            # Install dependencies (scripts disabled for security)
-pnpm rebuild <package-name>             # Run install scripts for specific package when needed
-pnpm rebuild                            # Run install scripts for all packages (rarely needed)
+# Running commands inside containers (via Tilt)
+# All commands are executed inside the archestra-dev Kubernetes pod
+tilt trigger lint:fix                # Lint and auto-fix inside container
+tilt trigger codegen:api-client      # Generate API client inside container
+
+# Running commands inside containers (via kubectl exec)
+kubectl exec -n archestra-dev deployment/archestra-dev-archestra-platform -- pnpm lint
+kubectl exec -n archestra-dev deployment/archestra-dev-archestra-platform -- pnpm type-check
+kubectl exec -n archestra-dev deployment/archestra-dev-archestra-platform -- pnpm test
+kubectl exec -n archestra-dev deployment/archestra-dev-archestra-platform -- pnpm test:e2e
+
+# Dependency Management (inside container)
+kubectl exec -n archestra-dev deployment/archestra-dev-archestra-platform -- pnpm install
+kubectl exec -n archestra-dev deployment/archestra-dev-archestra-platform -- pnpm rebuild <package-name>
 
 # Database
-pnpm db:migrate      # Run database migrations
-pnpm db:studio       # Open Drizzle Studio
-pnpm db:generate     # Generate new migrations (CI checks for uncommitted migrations)
-drizzle-kit check    # Check consistency of generated SQL migrations history
+tilt trigger db-migrate              # Run database migrations via Tilt
+tilt trigger db-generate             # Generate new migrations via Tilt
+tilt trigger database-gui            # Open Drizzle Studio via Tilt
+# OR via kubectl exec:
+kubectl exec -n archestra-dev deployment/archestra-dev-archestra-platform -- sh -c "cd backend && pnpm db:migrate"
+kubectl exec -n archestra-dev deployment/archestra-dev-archestra-platform -- sh -c "cd backend && pnpm db:studio"
+kubectl exec -n archestra-dev deployment/archestra-dev-archestra-platform -- sh -c "cd backend && pnpm db:generate"
 
 # Database Connection
-# PostgreSQL is running in Kubernetes (managed by Tilt)
+# PostgreSQL is running in Kubernetes (deployed via Helm chart subchart)
 # Connect to database:
-kubectl exec -n archestra-dev postgresql-0 -- env PGPASSWORD=archestra_dev_password psql -U archestra -d archestra_dev
+kubectl exec -n archestra-dev archestra-dev-postgresql-0 -- env PGPASSWORD=archestra_dev_password psql -U archestra -d archestra_dev
 
 # Common queries: \dt (list tables), \d table_name (describe table), SELECT COUNT(*) FROM drizzle.__drizzle_migrations;
 
 # Logs
-tilt logs pnpm-dev                   # Get logs for frontend + backend
-tilt trigger <pnpm-dev|wiremock|etc> # Trigger an update for the specified resource
+tilt logs archestra-dev              # Get logs for frontend + backend
+tilt trigger <archestra-dev|wiremock|etc> # Trigger an update for the specified resource
 
 # Testing with WireMock
 tilt trigger orlando-wiremock        # Start orlando WireMock test environment (port 9091)
 
 # E2E Testing
-pnpm test:e2e                        # Run Playwright tests
-# Local: docker-compose setup (Tiltfile.test)
-# CI: kind cluster + helm deployment
-#   - kind config: .github/kind.yaml
-#   - helm values: .github/values-ci.yaml
-#   - NodePort services: frontend:3000, backend:9000, metrics:9050
-#   - CI checks in e2e job: drizzle-kit check, codegen, db migrations
+tilt trigger e2e-tests               # Run Playwright tests via Tilt
+# OR via kubectl:
+kubectl exec -n archestra-dev deployment/archestra-dev-archestra-platform -- pnpm test:e2e
 
 # Observability
 tilt trigger observability           # Start full observability stack (Tempo, OTEL Collector, Prometheus, Grafana)
@@ -154,7 +158,9 @@ ARCHESTRA_SENTRY_FRONTEND_DSN=  # Frontend error tracking DSN
 
 ## Architecture
 
-**Tech Stack**: pnpm monorepo, Fastify backend (port 9000), metrics server (port 9050), Next.js frontend (port 3000), PostgreSQL + Drizzle ORM, Biome linting, Tilt orchestration, Kubernetes for MCP server runtime
+**Tech Stack**: pnpm monorepo, Fastify backend (port 9000), metrics server (port 9050), Next.js frontend (port 3000), PostgreSQL + Drizzle ORM, Biome linting, Tilt orchestration, Docker for development environment, Kubernetes for PostgreSQL and MCP server runtime
+
+**Development Setup**: Uses Helm chart for deployment to Kubernetes with Tilt orchestration. Docker image contains all development services (frontend + backend) with Tilt's live_update for hot-reloading. PostgreSQL runs in Kubernetes as a subchart dependency. Source code is copied into the Docker image for fast compilation (reads from Docker filesystem, not macOS volume mount), and Tilt syncs changes automatically without rebuilding.
 
 **Key Features**: MCP tool execution, dual LLM security pattern, tool invocation policies, trusted data policies, MCP response modifiers (Handlebars.js), team-based access control (profiles and MCP servers), MCP server installation request workflow, K8s-based MCP server runtime with stdio and streamable-http transport support, white-labeling (themes, logos, fonts), profile-based chat with MCP tools, comprehensive built-in Archestra MCP tools, profile chat visibility control, TOON format conversion for efficient token usage
 

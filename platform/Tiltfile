@@ -30,8 +30,128 @@ else:
 
 dotenv('./.env')
 
+# Create namespace for development
+k8s_yaml(blob('''
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: archestra-dev
+'''))
+
+# Build Docker image with live_update for fast development
+docker_build(
+  'archestra-dev',
+  '.',
+  dockerfile='./dev.Dockerfile',
+  target='dev',
+  live_update=[
+    # Rebuild image if package files or turbo config change (must be first)
+    fall_back_on(['./package.json', './backend/package.json', './frontend/package.json', './shared/package.json', './turbo.json']),
+
+    # Sync source code changes to container without rebuilding image
+    sync('./backend', '/app/backend'),
+    sync('./frontend', '/app/frontend'),
+    sync('./shared', '/app/shared'),
+    sync('./experiments', '/app/experiments'),
+    sync('./e2e-tests', '/app/e2e-tests'),
+  ],
+  ignore=['**/node_modules', '**/.next', '**/.turbo', '**/dist', '**/.git'],
+)
+
+# Deploy using Helm chart (includes PostgreSQL subchart)
+yaml = helm(
+  './helm/archestra',
+  name='archestra-dev',
+  namespace='archestra-dev',
+  values=['./helm/archestra/values-dev.yaml'],
+  set=['archestra.image=archestra-dev'],
+)
+k8s_yaml(yaml)
+
+# Configure PostgreSQL resource from the Helm chart
+k8s_resource('archestra-dev-postgresql',
+  new_name='postgresql',
+  port_forwards=['5432:5432'],
+  labels=['database']
+)
+
+# Configure Archestra resource from the Helm chart
+k8s_resource(
+  'archestra-dev-archestra-platform',
+  new_name='archestra-dev',
+  port_forwards=['3000:3000', '9000:9000', '9050:9050'],
+  labels=['dev'],
+  resource_deps=['postgresql']
+)
+
+# Database cleanup button (manual trigger only, for development)
+local_resource(
+  'db-clean',
+  cmd='kubectl exec -n archestra-dev deployment/archestra-dev-archestra-platform -- sh -c "cd backend && pnpm db:clean" && tilt trigger db-migrate',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  labels=['database']
+)
+
+local_resource(
+  'db-seed-mock-data',
+  cmd='kubectl exec -n archestra-dev deployment/archestra-dev-archestra-platform -- sh -c "cd backend && pnpm db:seed:mock-data"',
+  resource_deps=['archestra-dev'],
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  labels=['database']
+)
+
+local_resource(
+  'db-migrate',
+  # Run migrations inside the Kubernetes pod
+  # Retry logic: wait for deployment to exist and PostgreSQL to be ready
+  cmd='''
+    # Wait for deployment to exist
+    for i in {1..30}; do
+      if kubectl get deployment archestra-dev-archestra-platform -n archestra-dev >/dev/null 2>&1; then
+        echo "✅ Deployment exists"
+        break
+      fi
+      echo "⏳ Waiting for deployment to be created... (attempt $i/30)"
+      sleep 2
+    done
+
+    # Run migrations
+    for i in {1..30}; do
+      if kubectl exec -n archestra-dev deployment/archestra-dev-archestra-platform -- sh -c "cd backend && pnpm db:migrate" 2>/dev/null; then
+        echo "✅ Migration completed successfully"
+        exit 0
+      fi
+      echo "⏳ Waiting for pod to be ready... (attempt $i/30)"
+      sleep 2
+    done
+    echo "❌ Migration failed after 30 attempts"
+    exit 1
+  ''',
+  deps=['./backend/src/database/migrations'],
+  resource_deps=['archestra-dev'],
+  labels=['database']
+)
+
+local_resource(
+  'db-generate',
+  cmd='kubectl exec -n archestra-dev deployment/archestra-dev-archestra-platform -- sh -c "cd backend && pnpm db:generate"',
+  resource_deps=['archestra-dev'],
+  labels=['database'],
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+)
+
+local_resource(
+  'database-gui',
+  # Run Drizzle Studio inside the Kubernetes pod
+  serve_cmd='kubectl exec -n archestra-dev -i deployment/archestra-dev-archestra-platform -- sh -c "cd backend && pnpm db:studio"',
+  labels=['database'],
+  resource_deps=['archestra-dev']
+)
+
 # Load sub-Tiltfiles by label
-load_dynamic('./dev/Tiltfile.database')
 load_dynamic('./dev/Tiltfile.dev')
 load_dynamic('./dev/Tiltfile.test')
 load_dynamic('./dev/Tiltfile.integrations')
