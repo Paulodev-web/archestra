@@ -1,7 +1,7 @@
 "use client";
 
 import { archestraApiSdk, type archestraApiTypes } from "@shared";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { DEFAULT_TABLE_LIMIT } from "./utils";
 
 const { getInteraction, getInteractions } = archestraApiSdk;
@@ -66,5 +66,27 @@ export function useInteraction({
     },
     initialData,
     ...(refetchInterval ? { refetchInterval } : {}), // later we might want to switch to websockets or sse, polling for now
+  });
+}
+
+export function useLatestInteraction(agentId: string | undefined) {
+  return useQuery({
+    queryKey: ["interactions", "latest", agentId],
+    queryFn: async () => {
+      if (!agentId) return null;
+
+      const response = await getInteractions({
+        query: {
+          agentId,
+          limit: 1,
+          offset: 0,
+          sortBy: "createdAt",
+          sortDirection: "desc",
+        },
+      });
+
+      return response.data?.data[0] || null;
+    },
+    enabled: !!agentId,
   });
 }

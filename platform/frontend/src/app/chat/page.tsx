@@ -29,6 +29,7 @@ import { PromptVersionHistoryDialog } from "@/components/chat/prompt-version-his
 import { StreamTimeoutWarning } from "@/components/chat/stream-timeout-warning";
 import { PageLayout } from "@/components/page-layout";
 import { WithPermissions } from "@/components/roles/with-permissions";
+import { Savings } from "@/components/savings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +49,7 @@ import { useChatSession } from "@/contexts/global-chat-context";
 import { useProfiles } from "@/lib/agent.query";
 import { useConversation, useCreateConversation } from "@/lib/chat.query";
 import { useChatSettingsOptional } from "@/lib/chat-settings.query";
+import { useLatestInteraction } from "@/lib/interaction.query";
 import { useDeletePrompt, usePrompt, usePrompts } from "@/lib/prompts.query";
 
 const CONVERSATION_QUERY_PARAM = "conversation";
@@ -122,6 +124,9 @@ export default function ChatPage() {
 
   // Get current agent info
   const currentProfileId = conversation?.agentId;
+
+  // Fetch latest interaction for cost savings
+  const { data: latestInteraction } = useLatestInteraction(currentProfileId);
 
   // Clear MCP Gateway sessions when opening a NEW conversation
   useEffect(() => {
@@ -487,10 +492,21 @@ export default function ChatPage() {
           <div className="sticky top-0 z-10 bg-background border-b p-2 flex items-center justify-between">
             <div className="flex-1" />
             {conversation?.agent?.name && (
-              <div className="flex-1 text-center">
+              <div className="flex-1 text-center flex items-center justify-center gap-2">
                 <span className="text-sm font-medium text-muted-foreground">
                   {conversation.agent.name}
                 </span>
+                {latestInteraction?.baselineCost && latestInteraction.cost && (
+                  <TooltipProvider>
+                    <Savings
+                      cost={latestInteraction.cost}
+                      baselineCost={latestInteraction.baselineCost}
+                      format="percent"
+                      tooltip="always"
+                      className="text-xs"
+                    />
+                  </TooltipProvider>
+                )}
               </div>
             )}
             <div className="flex-1 flex justify-end gap-2 items-center">
