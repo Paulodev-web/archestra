@@ -169,6 +169,9 @@ class ToolModel {
         catalogId: schema.toolsTable.catalogId,
         parameters: schema.toolsTable.parameters,
         description: schema.toolsTable.description,
+        category: schema.toolsTable.category,
+        categoryAutoAssigned: schema.toolsTable.categoryAutoAssigned,
+        categorizedAt: schema.toolsTable.categorizedAt,
         createdAt: schema.toolsTable.createdAt,
         updatedAt: schema.toolsTable.updatedAt,
         agent: {
@@ -733,6 +736,58 @@ class ToolModel {
       .select()
       .from(schema.toolsTable)
       .where(inArray(schema.toolsTable.id, ids));
+  }
+
+  /**
+   * Bulk update categories for multiple tools
+   * Used by auto-categorization endpoint
+   */
+  static async bulkUpdateCategories(
+    updates: Array<{
+      toolId: string;
+      category: string;
+      isAutoAssigned: boolean;
+    }>,
+  ): Promise<void> {
+    if (updates.length === 0) {
+      return;
+    }
+
+    // Execute all updates in parallel
+    await Promise.all(
+      updates.map(({ toolId, category, isAutoAssigned }) =>
+        db
+          .update(schema.toolsTable)
+          .set({
+            category,
+            categoryAutoAssigned: isAutoAssigned ? "true" : "false",
+            categorizedAt: new Date(),
+          })
+          .where(eq(schema.toolsTable.id, toolId)),
+      ),
+    );
+  }
+
+  /**
+   * Update category for a single tool
+   * Used when user manually changes category
+   */
+  static async updateCategory(
+    toolId: string,
+    category: string | null,
+    isAutoAssigned: boolean = false,
+  ): Promise<Tool | null> {
+    const [updatedTool] = await db
+      .update(schema.toolsTable)
+      .set({
+        category,
+        categoryAutoAssigned: isAutoAssigned ? "true" : "false",
+        categorizedAt: category ? new Date() : null,
+      })
+      .where(eq(schema.toolsTable.id, toolId))
+      .returning();
+
+    return updatedTool || null;
   }
 }
 

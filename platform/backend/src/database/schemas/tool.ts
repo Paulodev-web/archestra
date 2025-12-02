@@ -35,6 +35,12 @@ const toolsTable = pgTable(
       .notNull()
       .default({}),
     description: text("description"),
+    // Tool categorization fields
+    category: text("category"),
+    categoryAutoAssigned: text("category_auto_assigned", {
+      enum: ["true", "false"],
+    }).default("false"),
+    categorizedAt: timestamp("categorized_at", { mode: "date" }),
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" })
       .notNull()

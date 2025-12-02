@@ -20,6 +20,16 @@ import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DataTable } from "@/components/ui/data-table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { PermissionButton } from "@/components/ui/permission-button";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
@@ -40,6 +50,7 @@ import { useProfiles } from "@/lib/agent.query";
 import {
   useAllProfileTools,
   useBulkUpdateProfileTools,
+  useCategorizeTools,
   useProfileToolPatchMutation,
   useUnassignTool,
 } from "@/lib/agent-tools.query";
@@ -87,6 +98,7 @@ export function AssignedToolsTable({ onToolClick }: AssignedToolsTableProps) {
   const agentToolPatchMutation = useProfileToolPatchMutation();
   const bulkUpdateMutation = useBulkUpdateProfileTools();
   const unassignToolMutation = useUnassignTool();
+  const categorizeToolsMutation = useCategorizeTools();
   const { data: invocationPolicies } = useToolInvocationPolicies();
   const { data: resultPolicies } = useToolResultPolicies();
   const { data: internalMcpCatalogItems } = useInternalMcpCatalog();
@@ -131,6 +143,8 @@ export function AssignedToolsTable({ onToolClick }: AssignedToolsTableProps) {
     Set<{ id: string; field: string }>
   >(new Set());
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  const [showCategorizeDialog, setShowCategorizeDialog] = useState(false);
+  const [categorizingApiKey, setCategorizingApiKey] = useState("");
 
   // Fetch agent tools with server-side pagination, filtering, and sorting
   const { data: agentToolsData, isLoading } = useAllProfileTools({
@@ -310,6 +324,43 @@ export function AssignedToolsTable({ onToolClick }: AssignedToolsTableProps) {
     setRowSelection({});
     setSelectedTools([]);
   }, []);
+
+  const handleCategorize = useCallback(async () => {
+    if (!categorizingApiKey.trim()) {
+      toast.error("Please enter an Anthropic API key");
+      return;
+    }
+
+    const toolIds = selectedTools.map((tool) => tool.tool.id);
+    if (toolIds.length === 0) {
+      toast.error("No tools selected");
+      return;
+    }
+
+    try {
+      const result = await categorizeToolsMutation.mutateAsync({
+        toolIds,
+        chatToken: categorizingApiKey.trim(),
+      });
+
+      if (result?.categorized && result.categorized.length > 0) {
+        toast.success(
+          `Successfully categorized ${result.categorized.length} tool(s)`,
+        );
+      }
+
+      if (result?.failed && result.failed.length > 0) {
+        toast.warning(`Failed to categorize ${result.failed.length} tool(s)`);
+      }
+
+      setShowCategorizeDialog(false);
+      setCategorizingApiKey("");
+      clearSelection();
+    } catch (error) {
+      console.error("Categorization failed:", error);
+      toast.error("Failed to categorize tools");
+    }
+  }, [selectedTools, categorizingApiKey, categorizeToolsMutation, clearSelection]);
 
   const isRowFieldUpdating = useCallback(
     (
@@ -511,6 +562,38 @@ export function AssignedToolsTable({ onToolClick }: AssignedToolsTableProps) {
           );
         },
         size: 100,
+      },
+      {
+        id: "category",
+        accessorFn: (row) => row.tool.category || "",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            className="-ml-4 h-auto px-4 py-2 font-medium hover:bg-transparent"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Category
+            <SortIcon isSorted={column.getIsSorted()} />
+          </Button>
+        ),
+        cell: ({ row }) => {
+          const category = row.original.tool.category;
+          const isAutoAssigned = row.original.tool.categoryAutoAssigned === "true";
+
+          if (!category) {
+            return <span className="text-sm text-muted-foreground">—</span>;
+          }
+
+          return (
+            <div className="flex items-center gap-1">
+              {isAutoAssigned && <span className="text-sm">🤖</span>}
+              <Badge variant="outline" className="text-xs">
+                {category}
+              </Badge>
+            </div>
+          );
+        },
+        size: 120,
       },
       {
         id: "token",
@@ -900,6 +983,15 @@ export function AssignedToolsTable({ onToolClick }: AssignedToolsTableProps) {
           >
             Clear selection
           </Button>
+          <PermissionButton
+            permissions={{ tool: ["update"] }}
+            size="sm"
+            variant="outline"
+            onClick={() => setShowCategorizeDialog(true)}
+            disabled={!hasSelection || isBulkUpdating}
+          >
+            🤖 Categorize
+          </PermissionButton>
         </div>
       </div>
 
@@ -965,6 +1057,58 @@ export function AssignedToolsTable({ onToolClick }: AssignedToolsTableProps) {
           onRowSelectionChange={handleRowSelectionChange}
         />
       )}
+
+      <Dialog open={showCategorizeDialog} onOpenChange={setShowCategorizeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Categorize Tools</DialogTitle>
+            <DialogDescription>
+              Enter your Anthropic API key to auto-categorize {selectedTools.length} selected tool(s) using AI.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="api-key">Anthropic API Key</Label>
+              <Input
+                id="api-key"
+                type="password"
+                placeholder="sk-ant-..."
+                value={categorizingApiKey}
+                onChange={(e) => setCategorizingApiKey(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !categorizeToolsMutation.isPending) {
+                    handleCategorize();
+                  }
+                }}
+              />
+              <p className="text-sm text-muted-foreground">
+                Your API key is only used for this categorization request and is not stored.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowCategorizeDialog(false);
+                setCategorizingApiKey("");
+              }}
+              disabled={categorizeToolsMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCategorize}
+              disabled={!categorizingApiKey.trim() || categorizeToolsMutation.isPending}
+            >
+              {categorizeToolsMutation.isPending && (
+                <LoadingSpinner className="mr-2 h-4 w-4" />
+              )}
+              Categorize
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

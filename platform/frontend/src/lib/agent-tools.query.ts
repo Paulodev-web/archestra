@@ -8,6 +8,7 @@ const {
   bulkUpdateAgentTools,
   unassignToolFromAgent,
   updateAgentTool,
+  categorizeTools,
 } = archestraApiSdk;
 
 type GetAllProfileToolsQueryParams = NonNullable<
@@ -255,6 +256,37 @@ export function useBulkUpdateProfileTools() {
       // Invalidate all agent-tools queries to refetch updated data
       queryClient.invalidateQueries({
         queryKey: ["agent-tools"],
+      });
+    },
+  });
+}
+
+export function useCategorizeTools() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      toolIds,
+      chatToken,
+    }: {
+      toolIds: string[];
+      chatToken: string;
+    }) => {
+      const result = await categorizeTools({
+        body: { toolIds },
+        headers: {
+          Authorization: `Bearer ${chatToken}`,
+        },
+      });
+      return result.data;
+    },
+    onSuccess: () => {
+      // Invalidate all agent-tools queries to refetch updated data with new categories
+      queryClient.invalidateQueries({
+        queryKey: ["agent-tools"],
+      });
+      // Also invalidate tools queries
+      queryClient.invalidateQueries({
+        queryKey: ["tools"],
       });
     },
   });

@@ -512,6 +512,13 @@
       "when": 1764595314504,
       "tag": "0072_add secret name",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1764627271732,
+      "tag": "0073_tidy_warstar",
+      "breakpoints": true
     }
   ]
 }

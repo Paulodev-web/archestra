@@ -229,6 +229,8 @@ export const RouteId = {
   // Tool Routes
   GetTools: "getTools",
   GetUnassignedTools: "getUnassignedTools",
+  CategorizeTools: "categorizeTools",
+  UpdateToolCategory: "updateToolCategory",
 
   // Interaction Routes
   GetInteractions: "getInteractions",
@@ -391,6 +393,12 @@ export const requiredEndpointPermissionsMap: Partial<
   },
   [RouteId.GetUnassignedTools]: {
     tool: ["read"],
+  },
+  [RouteId.CategorizeTools]: {
+    tool: ["update"],
+  },
+  [RouteId.UpdateToolCategory]: {
+    tool: ["update"],
   },
   [RouteId.AssignToolToAgent]: {
     profile: ["update"],
