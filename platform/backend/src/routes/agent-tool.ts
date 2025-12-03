@@ -13,6 +13,7 @@ import {
   ToolModel,
   UserModel,
 } from "@/models";
+import { agentToolAutoPolicyService } from "@/models/agent-tool-auto-policy";
 import type { InternalMcpCatalog, Tool } from "@/types";
 import {
   AgentToolFilterSchema,
@@ -543,6 +544,65 @@ const agentToolRoutes: FastifyPluginAsyncZod = async (fastify) => {
       );
 
       return reply.send(groupedByCatalogId);
+    },
+  );
+
+  fastify.post(
+    "/api/agent-tools/auto-configure-policies",
+    {
+      schema: {
+        operationId: RouteId.AutoConfigureAgentToolPolicies,
+        description:
+          "Automatically configure security policies for agent-tool assignments using Anthropic LLM analysis",
+        tags: ["Agent Tools"],
+        body: z.object({
+          agentToolIds: z.array(z.string().uuid()).min(1),
+        }),
+        response: constructResponseSchema(
+          z.object({
+            success: z.boolean(),
+            results: z.array(
+              z.object({
+                agentToolId: z.string().uuid(),
+                success: z.boolean(),
+                config: z
+                  .object({
+                    allowUsageWhenUntrustedDataIsPresent: z.boolean(),
+                    toolResultTreatment: z.enum([
+                      "trusted",
+                      "sanitize_with_dual_llm",
+                      "untrusted",
+                    ]),
+                    reasoning: z.string(),
+                  })
+                  .optional(),
+                error: z.string().optional(),
+              }),
+            ),
+          }),
+        ),
+      },
+    },
+    async ({ body, organizationId }, reply) => {
+      const { agentToolIds } = body;
+
+      // Check if service is available for this organization
+      const available =
+        await agentToolAutoPolicyService.isAvailable(organizationId);
+      if (!available) {
+        throw new ApiError(
+          503,
+          "Auto-policy requires Anthropic API key to be configured in chat settings",
+        );
+      }
+
+      const result =
+        await agentToolAutoPolicyService.configurePoliciesForAgentTools(
+          agentToolIds,
+          organizationId,
+        );
+
+      return reply.send(result);
     },
   );
 };
