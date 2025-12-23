@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.10](https://github.com/archestra-ai/archestra/compare/platform-v1.0.9...platform-v1.0.10) (2025-12-23)
+
+
+### Features
+
+* improve onboarding and connection setup UX ([#1695](https://github.com/archestra-ai/archestra/issues/1695)) ([dea859e](https://github.com/archestra-ai/archestra/commit/dea859e1cf4513caddc7070a388b22f0c874904e))
+* vault for chat api keys ([#1694](https://github.com/archestra-ai/archestra/issues/1694)) ([2e46248](https://github.com/archestra-ai/archestra/commit/2e46248ad440b08c5a684045aa32d770e2134c0d))
+
+
+### Miscellaneous Chores
+
+* kill orphan processes in dev env ([#1698](https://github.com/archestra-ai/archestra/issues/1698)) ([dfb2514](https://github.com/archestra-ai/archestra/commit/dfb251449b9f773e196dfe6ad9a16b11c6c5a464))
+
 ## [1.0.9](https://github.com/archestra-ai/archestra/compare/platform-v1.0.8...platform-v1.0.9) (2025-12-23)
 
 
